@@ -1010,7 +1010,6 @@
                 squadre: squadre,
                 giocatoriDisponibili: giocatoriDisponibili,
                 rawPlayers: rawPlayers,
-                auctionHistory: auctionHistory
             };
             localStorage.setItem(CACHE_KEY, JSON.stringify(state));
             console.log('Stato salvato nella cache locale.');
@@ -1143,14 +1142,6 @@
             auctionInfo.style.display = 'none';
             playerCard.classList.remove('auction-active');
             biddingControls.style.display = 'none';
-
-            // Add to auction history
-            auctionHistory.push({
-                playerName: currentAuction.nome,
-                playerId: currentAuction.id,
-                price: currentPrice,
-                timestamp: new Date()
-            });
 
             auctionedPlayers.push(currentAuction);
             updatePlayerCounter();
@@ -2527,5 +2518,6 @@
 </body>
 
 </html>
+
 
 
