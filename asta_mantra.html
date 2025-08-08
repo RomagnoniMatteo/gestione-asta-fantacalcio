@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Asta Mantra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .settings-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .settings-btn:hover,
+        .reset-btn:hover,
+        .download-btn:hover,
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #656ff5, #3e3ee5);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #656ff5, #3e3ee5);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .field-section,
+        .players-section,
+        .teams-section,
+        .asta-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        .field-container {
+            background: url('https://app.fantalab.it/assets/general/black_pitch_prosp.png') center;
+            background-size: cover;
+            background-color: darkblue;
+            background-repeat: no-repeat;
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 300px;
+            position: relative;
+            border: 3px solid #fff;
+        }
+
+        .field-formation {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+        }
+
+        .formation-line {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        #nomi_squadre {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .player-slot {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .player-slot:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .player-slot.filled {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border-color: #38a169;
+        }
+
+        .player-slot.goalkeeper {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            border-color: #dd6b20;
+        }
+
+        .player-remove {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .player-slot.filled:hover .player-remove {
+            display: block;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filter-input,
+        .filter-select,
+        .btn {
+            padding: 12px 15px;
+            min-width: 60px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #718096, #4a5568);
+        }
+
+        .players-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .players-table th,
+        .players-table td {
+            padding: 8px 4px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .players-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            font-size: 12px;
+        }
+
+        .players-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .team-card {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .team-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .team-budget {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .team-players {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .role-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+        }
+
+        .price-badge {
+            background: #48bb78;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Auction specific styles */
+        .auction-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .auction-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .auction-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .player-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+
+
+        .timer-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 15px 0;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-display.warning {
+            color: #ff6b6b;
+            animation: pulse 0.5s infinite;
+        }
+
+        .price-display {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #27ae60;
+        }
+
+        .bidding-controls {
+            margin-top: 20px;
+        }
+
+        .bidding-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .bid-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .bid-btn:hover {
+            background: linear-gradient(135deg, #229954, #1e8449);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .bid-btn:active {
+            transform: translateY(0);
+        }
+
+        .player-counter {
+            font-size: 1rem;
+            color: #667eea;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            font-weight: bold;
+        }
+
+        .shuffle-btn {
+            background: linear-gradient(135deg, #ff7675, #e84393);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .shuffle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 118, 117, 0.3);
+        }
+
+
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .desk-only {
+            display: none;
+        }
+
+        /* Desktop styles */
+        @media (min-width: 768px) {
+
+            .player-card {
+                flex-direction: row;
+            }
+
+            .desk-only {
+                display: table-cell;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2.5em;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr 400px;
+                gap: 20px;
+            }
+
+            .filters {
+                grid-template-columns: 2fr 1fr auto;
+                gap: 15px;
+            }
+
+            .player-slot {
+                width: 60px;
+                height: 60px;
+                font-size: 10px;
+            }
+
+            .field-container {
+                min-height: 400px;
+                padding: 20px;
+            }
+
+            .formation-line {
+                margin: 10px 0;
+            }
+
+            .players-table {
+                font-size: 16px;
+            }
+
+            .players-table th,
+            .players-table td {
+                padding: 12px;
+            }
+
+            .players-table th {
+                font-size: 14px;
+            }
+
+            .mobile-tabs {
+                display: none;
+            }
+
+            .tab-content {
+                display: block !important;
+            }
+
+            .settings-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .stat-value {
+                font-size: 2em;
+            }
+
+            .stat-label {
+                font-size: 0.9em;
+            }
+
+            .upload-area {
+                margin-bottom: 0;
+            }
+
+            .auction-controls {
+                justify-content: center;
+            }
+
+            .bidding-buttons {
+                gap: 20px;
+            }
+        }
+
+        /* Larger desktop styles */
+        @media (min-width: 1200px) {
+            .main-content {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Gestione Asta Mantra</h1>
+            <button class="settings-btn" onclick="openSettingsModal()">⚙️ Impostazioni</button>
+            <button class="reset-btn" onclick="resetProgress()">🔄 Reset Dati</button>
+            <button class="download-btn" onclick="downloadCsv()">✅ Scarica Csv</button>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="gameType">Mantra</div>
+                    <div class="stat-label">Modalità</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="totalPlayers">0</div>
+                    <div class="stat-label">Giocatori Disponibili</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTeams">10</div>
+                    <div class="stat-label">Squadre</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="budgetDisplay">1000</div>
+                    <div class="stat-label">Budget Iniziale</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Tabs -->
+        <div class="mobile-tabs">
+            <button class="tab-btn active" onclick="switchTab('players')">Listone</button>
+            <button class="tab-btn" onclick="switchTab('asta')">Asta</button>
+            <button class="tab-btn" onclick="switchTab('field')">Formazioni</button>
+        </div>
+
+        <div class="main-content">
+
+            <div>
+
+                <!-- Asta Section -->
+                <div id="astaTab" class="tab-content">
+                    <div class="asta-section">
+                        <div class="auction-header">
+                            <h2>🧑‍⚖️ Asta Random</h2>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="player-counter" id="playerCounter">0/0</span>
+                                <button id="shufflePlayersBtn" class="shuffle-btn"
+                                    title="Rimescola giocatori">🔄</button>
+                            </div>
+                        </div>
+
+                        <div class="auction-controls">
+                            <button id="startAuctionBtn" class="action-btn">🎲 Avvia Asta</button>
+                            <button id="skipPlayerBtn" class="action-btn">⏭️ Salta Giocatore</button>
+                        </div>
+
+                        <div id="currentAuctionInfo" class="auction-info" style="display: none;">
+                            <div class="player-card" id="auctionPlayerCard">
+                                <div id="playerInfoAsta"
+                                    style="display: flex; align-items:center; justify-content:center"></div>
+                                <div class="price-display">💰 <span id="currentPrice">0</span></div>
+                                <div id="timerDisplay" class="timer-display"></div>
+                            </div>
+
+                            <div id="biddingControls" class="bidding-controls" style="display: none;">
+                                <div class="bidding-buttons">
+                                    <button class="bid-btn" data-value="1">+1</button>
+                                    <button class="bid-btn" data-value="5">+5</button>
+                                    <button class="bid-btn" data-value="10">+10</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Players Section -->
+                <div id="playersTab" class="tab-content active">
+                    <div class="players-section">
+                        <h2>🎯 Listone</h2>
+
+                        <div class="filters">
+                            <input type="text" id="searchPlayer" class="filter-input"
+                                placeholder="🔍 Cerca giocatore...">
+                            <select id="filterRole" class="filter-select">
+                            </select>
+                            <button class="btn btn-secondary" onclick="resetFilters()">Reset Filtri</button>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="players-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Sq.</th>
+                                        <th>Ruolo</th>
+                                        <th class="desk-only">FM</th>
+                                        <th class="desk-only">PV</th>
+                                        <th class="desk-only">€</th>
+                                        <th>Compra</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="playersTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- Field Section -->
+            <div id="fieldTab" class="tab-content">
+                <div class="field-section">
+                    <h3>⚽ Campo di Gioco</h3>
+                    <div id="fieldTeamSelect">
+                        <select id="fieldTeamSelectDropdown" class="filter-select" onchange="changeFieldTeam()">
+                            <option value="">Seleziona squadra</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <select id="moduleSelect" class="filter-select" onchange="changeModule()">
+                        </select>
+                    </div>
+                    <div class="field-container" style="margin-bottom: 15px; display:none">
+                        <div id="fieldFormation" class="field-formation"></div>
+                    </div>
+
+                    <div id="selectedTeamInfo" style="display: none;">
+                        <div class="team-card">
+                            <div id="selectedTeamDetails"></div>
+                            <h4>📋 Rosa Completa</h4>
+                            <div id="selectedTeamRoster"></div>
+                        </div>
+                    </div>
+
+                    <div id="teamsOverview">
+                        <div id="teamsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px">
+            <span class="close" onclick="closeSettingsModal()">&times;</span>
+            <h2>⚙️ Impostazioni Asta</h2>
+            <div style="margin-top: 20px;" class="settings-grid">
+                <div class="form-group">
+                    <label for="modalitaSetting">Modalità:</label>
+                    <select id="modalitaSetting" class="filter-select" onchange="changeModSettings()">
+                        <option value="classic">Classic</option>
+                        <option value="mantra" selected>Mantra</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="imbattibilitaSetting">Imbattibiltà (+1):</label>
+                    <select id="imbattibilitaSetting" class="filter-select">
+                        <option value="true" selected>SI</option>
+                        <option value="false">NO</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modSetting" id="titolo_mod">Dfactor:</label>
+                    <select id="modSetting" class="filter-select">
+                        <option value="0" selected>NO</option>
+                        <option value="1" class="mantra_mod">SI</option>
+                        <option value="3" class="classic_mod">Classico (3 fasce)</option>
+                        <option value="6" class="classic_mod">6 fasce</option>
+                    </select>
+                </div>
+                <div class="form-group mantra_mod">
+                    <label for="maxPortieriSetting">Max Portieri:</label>
+                    <input type="number" id="maxPortieriSetting" class="filter-input" value="4" step="1" min="2">
+                </div>
+                <div class="form-group mantra_mod">
+                    <label for="maxMovSetting">Max Giocatori Movimento:</label>
+                    <input type="number" id="maxMovSetting" class="filter-input" value="28" step="1" min="20">
+                </div>
+                <div class="form-group">
+                    <label for="budgetSetting">Budget Iniziale:</label>
+                    <input type="number" id="budgetSetting" class="filter-input" value="1000" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="participantsSetting">Numero Partecipanti:</label>
+                    <input type="number" id="participantsSetting" class="filter-input" step="2" value="10" min="6"
+                        max="20">
+                </div>
+            </div>
+            Nomi Squadre:
+            <div id="nomi_squadre"></div>
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="saveSettings()">💾 Salva Impostazioni</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>💰 Acquista Giocatore</h2>
+            <div id="playerInfo"></div>
+            <div class="form-group">
+                <label for="teamSelect">Seleziona Squadra:</label>
+                <select id="teamSelect" class="filter-select" style="width: 100%;">
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bidPrice">Prezzo Offerta:</label>
+                <input type="number" id="bidPrice" class="filter-input" style="width: 100%;" min="1">
+            </div>
+            <button class="btn" onclick="confirmPurchase()">Conferma Acquisto</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script>
+
+        const CACHE_KEY = 'astaGestioneState';
+
+        let gameSettings = {
+            modalita: 'mantra',
+            modificatoreDifesa: 0,
+            bonusImbattibilita: true,
+            maxMov: 28,
+            maxPor: 4,
+            budget: 1000,
+            participants: 10,
+            nomiSquadre: ["tia", "j", "peak", "roma", "ale", "inzo", "pashy", "mono", "ghirlo", "lanzo"],
+        };
+
+        let rawPlayers = {}
+
+        const moduliFantacalcio = {
+            "classic": {
+                "3-4-3": {
+                    "P": 1, "D": 3, "C": 4, "A": 3
+                },
+                "3-5-2": {
+                    "P": 1, "D": 3, "C": 5, "A": 2
+                },
+                "4-3-3": {
+                    "P": 1, "D": 4, "C": 3, "A": 3
+                },
+                "4-4-2": {
+                    "P": 1, "D": 4, "C": 4, "A": 2
+                },
+                "4-5-1": {
+                    "P": 1, "D": 4, "C": 5, "A": 1
+                },
+                "5-3-2": {
+                    "P": 1, "D": 5, "C": 3, "A": 2
+                },
+                "5-4-1": {
+                    "P": 1, "D": 5, "C": 4, "A": 1
+                },
+            },
+            "mantra": {
+                "3-4-3": {
+                    "Por": 1, "Dc": 2, "Dc/B": 1, "E": 2, "M/C": 1, "C": 1, "W/A": 2, "A/Pc": 1
+                },
+                "3-4-1-2": {
+                    "Por": 1, "Dc": 2, "Dc/B": 1, "E": 2, "M/C": 1, "C": 1, "T": 1, "A/Pc": 2
+                },
+                "3-4-2-1": {
+                    "Por": 1, "Dc": 2, "Dc/B": 1, "E": 1, "M": 1, "M/C": 1, "E/W": 1, "T": 1, "T/A": 1, "A/Pc": 1
+                },
+                "3-5-2": {
+                    "Por": 1, "Dc": 2, "Dc/B": 1, "E": 1, "M/C": 1, "M": 1, "C": 1, "E/W": 1, "A/Pc": 2
+                },
+                "3-5-1-1": {
+                    "Por": 1, "Dc": 2, "Dc/B": 1, "M": 2, "C": 1, "E/W": 2, "T/A": 1, "A/Pc": 1
+                },
+                "4-3-3": {
+                    "Por": 1, "Dd": 1, "Dc": 2, "Ds": 1, "M/C": 1, "M": 1, "C": 1, "W/A": 2, "A/Pc": 1
+                },
+                "4-3-1-2": {
+                    "Por": 1, "Dd": 1, "Dc": 2, "Ds": 1, "M/C": 1, "M": 1, "C": 1, "T": 1, "T/A/Pc": 1, "A/Pc": 1
+                },
+                "4-4-2": {
+                    "P": 1, "Dd": 1, "Dc": 2, "Ds": 1, "E": 1, "M/C": 1, "C": 1, "E/W": 1, "A/Pc": 2
+                },
+                "4-1-4-1": {
+                    "Por": 1, "Dd": 1, "Dc": 2, "Ds": 1, "E/W": 1, "M": 1, "C/T": 1, "T": 1, "W": 1, "A/Pc": 1
+                },
+                "4-4-1-1": {
+                    "Por": 1, "Dd": 1, "Dc": 2, "Ds": 1, "E/W": 2, "M": 1, "C": 1, "T/A": 1, "A/Pc": 1
+                },
+                "4-2-3-1": {
+                    "Por": 1, "Dd": 1, "Dc": 2, "Ds": 1, "M": 1, "M/C": 1, "W/T": 1, "T": 1, "W/A": 1, "A/Pc": 1
+                }
+            }
+        };
+
+        let currentTeamView = null;
+        let squadre = {}
+        let valoreMedioRuoli = {};
+        let currentPlayer = null;
+        let giocatoriDisponibili = [];
+
+        // Auction system variables
+        let availablePlayers = [];
+        let auctionedPlayers = [];
+        let currentAuction = null;
+        let currentPrice = 1;
+        let auctionTimer;
+        let timerSeconds = 10;
+
+        function saveState() {
+            const state = {
+                gameSettings: gameSettings,
+                squadre: squadre,
+                giocatoriDisponibili: giocatoriDisponibili,
+                rawPlayers: rawPlayers,
+                auctionHistory: auctionHistory
+            };
+            localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+            console.log('Stato salvato nella cache locale.');
+        }
+
+        function loadState() {
+            const cachedState = localStorage.getItem(CACHE_KEY);
+            if (cachedState) {
+                const state = JSON.parse(cachedState);
+                gameSettings = state.gameSettings;
+                squadre = state.squadre;
+                giocatoriDisponibili = state.giocatoriDisponibili;
+                rawPlayers = state.rawPlayers;
+                auctionHistory = state.auctionHistory || [];
+
+                populateModulo();
+                setupEventListeners();
+                populateTeamSelect();
+                populateFiltroRuoli();
+                updateStats();
+                renderPlayers();
+                renderTeams();
+                return true;
+            }
+            return false;
+        }
+
+
+
+        function updatePlayerCounter() {
+            const total = availablePlayers.length + auctionedPlayers.length;
+            document.getElementById('playerCounter').innerText = `${auctionedPlayers.length}/${total}`;
+        }
+
+        function shufflePlayers() {
+            const allPlayers = [...availablePlayers, ...auctionedPlayers];
+            availablePlayers = allPlayers.sort(() => Math.random() - 0.5);
+            auctionedPlayers = [];
+            updatePlayerCounter();
+            alert('Giocatori rimescolati!');
+        }
+
+        function startAuction() {
+            // Initialize available players if needed
+            if (availablePlayers.length === 0 && auctionedPlayers.length === 0) {
+                availablePlayers = [...giocatoriDisponibili];
+                shufflePlayers();
+            }
+
+            if (availablePlayers.length === 0) {
+                alert('Tutti i giocatori sono stati astati. Rimescola per ricominciare.');
+                return;
+            }
+
+            if (currentAuction) {
+                clearInterval(auctionTimer);
+            }
+
+            const player = availablePlayers.shift();
+            currentAuction = player;
+            currentPrice = 1;
+            timerSeconds = 10;
+
+            // Update UI
+            const playerInfo = document.getElementById('playerInfoAsta');
+            document.getElementById('currentPrice').innerText = currentPrice;
+
+            playerInfo.innerHTML = `
+                <div style="width: 30%;"> 
+                    <img style="width: 100%; border-radius: 8px;" 
+                         src="https://content.fantacalcio.it/web/campioncini/card/${player.nome.replace(' ', '-').replace('.', '').toUpperCase()}.png" onerror="this.style.display='none'"/> 
+                </div>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 70%; margin-left: 10px;">
+                    <h3>${player.nome}</h3>
+                    <br>
+                    <p><strong>Squadra:</strong> ${player.squadra}</p>
+                    <p><strong>Ruolo:</strong> ${gameSettings.modalita == 'mantra' ? player.ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${player.ruoloClassic}</span>`}</p>
+                    <p><strong>FM:</strong> ${parseFloat(player.fm.toFixed(1))}</p>
+                    <p><strong>PV:</strong> ${parseFloat(player.pv.toFixed(1))}</p>
+                    <p><strong>Prezzo Consigliato:</strong> ${codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</p>
+                </div>`
+
+            // Show auction info and add active class
+            const auctionInfo = document.getElementById('currentAuctionInfo');
+            const playerCard = document.getElementById('auctionPlayerCard');
+            auctionInfo.style.display = 'block';
+            playerCard.classList.add('auction-active');
+            document.getElementById('biddingControls').style.display = 'block';
+
+            updatePlayerCounter();
+            startTimer();
+        }
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.innerText = timerSeconds;
+
+            auctionTimer = setInterval(() => {
+                timerSeconds--;
+                timerDisplay.innerText = timerSeconds;
+
+                // Add warning class when timer is low
+                if (timerSeconds <= 3) {
+                    timerDisplay.classList.add('warning');
+                } else {
+                    timerDisplay.classList.remove('warning');
+                }
+
+                if (timerSeconds <= 0) {
+                    clearInterval(auctionTimer);
+                    endAuction();
+                }
+            }, 1000);
+        }
+
+        function raiseBid(value) {
+            if (!currentAuction) return;
+
+            currentPrice += value;
+            document.getElementById('currentPrice').innerText = currentPrice;
+            clearInterval(auctionTimer);
+            timerSeconds = 10;
+            startTimer();
+        }
+
+        function endAuction() {
+            const auctionInfo = document.getElementById('currentAuctionInfo');
+            const playerCard = document.getElementById('auctionPlayerCard');
+            const biddingControls = document.getElementById('biddingControls');
+
+            auctionInfo.style.display = 'none';
+            playerCard.classList.remove('auction-active');
+            biddingControls.style.display = 'none';
+
+            // Add to auction history
+            auctionHistory.push({
+                playerName: currentAuction.nome,
+                playerId: currentAuction.id,
+                price: currentPrice,
+                timestamp: new Date()
+            });
+
+            auctionedPlayers.push(currentAuction);
+            updatePlayerCounter();
+
+            // Open buy modal with suggested price
+            openBuyModal(currentAuction.id, currentPrice);
+            currentAuction = null;
+        }
+
+        function skipPlayer() {
+            if (!currentAuction) {
+                alert('Nessun giocatore in asta da saltare.');
+                return;
+            }
+
+            clearInterval(auctionTimer);
+            const auctionInfo = document.getElementById('currentAuctionInfo');
+            const playerCard = document.getElementById('auctionPlayerCard');
+            const biddingControls = document.getElementById('biddingControls');
+
+            auctionInfo.style.display = 'none';
+            playerCard.classList.remove('auction-active');
+            biddingControls.style.display = 'none';
+
+            // Put player back in available list
+            availablePlayers.push(currentAuction);
+            currentAuction = null;
+
+            // Automatically start next auction
+            setTimeout(() => startAuction(), 500);
+        }
+
+        function downloadCsv() {
+            let csv = "$,$,$\n";
+
+            for (const nome in squadre) {
+                const rosa = squadre[nome].rosa;
+                if (rosa.length > 0) {
+                    const primo = rosa[0];
+                    csv += `${nome},${primo.Id},${primo.Prezzo}\n`;
+                    for (let i = 1; i < rosa.length; i++) {
+                        csv += `${nome},${rosa[i].Id},${rosa[i].Prezzo}\n`;
+                    }
+                }
+                csv += "$,$,$\n";
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "rosters.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('download completato!')
+        }
+
+        function resetProgress() {
+            if (confirm("Sei sicuro di voler resettare tutti i dati dell'asta? Questa azione è irreversibile.")) {
+                localStorage.removeItem(CACHE_KEY);
+                alert("Dati resettati con successo. La pagina verrà ricaricata.");
+                location.reload();
+            }
+        }
+
+        function initializeTeams() {
+            squadre = {};
+            gameSettings.nomiSquadre.slice(0, gameSettings.participants).forEach(nome => {
+                squadre[nome] = {
+                    rosa: [],
+                    budget: gameSettings.budget,
+                    modulo: document.getElementById('moduleSelect').value,
+                    formazione: {}
+                };
+            });
+        }
+
+        function calcolaMoltiplicatoreRuolo(ruolo_mantra) {
+            moduli_utenti = [];
+            Object.keys(squadre).forEach(teamId => {
+                moduli_utenti.push(squadre[teamId].modulo);
+            });
+            let quantitaTotale = 0;
+
+            // Itera attraverso ogni modulo degli utenti
+            for (const nomeModulo of moduli_utenti) {
+                const modulo = moduliFantacalcio[gameSettings.modalita][nomeModulo];
+
+                if (!modulo) {
+                    console.warn(`Modulo "${nomeModulo}" non trovato`);
+                    continue;
+                }
+
+                // Itera attraverso ogni ruolo nel modulo
+                for (const [ruoloModulo, quantita] of Object.entries(modulo)) {
+                    const ruoliPossibili = ruoloModulo.split("/");
+
+                    // Controlla se il ruolo cercato è presente
+                    for (let i = 0; i < ruoliPossibili.length; i++) {
+                        const ruolo = ruoliPossibili[i];
+
+                        if (ruolo === ruolo_mantra) {
+                            const isPrimaryRole = getPrimaryRole(ruolo, ruoliPossibili);
+
+                            if (isPrimaryRole) {
+                                quantitaTotale += 1;
+                            } else {
+                                quantitaTotale += 0.7;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return quantitaTotale / gameSettings.participants;
+        }
+
+        function getPrimaryRole(ruolo, ruoliPossibili) {
+            const prioritaRuoli = ['Dc', 'Pc', 'A', 'W', 'T', 'C', 'M', 'B', 'Dd', 'Ds', 'E'];
+
+            for (const ruoloPrioritario of prioritaRuoli) {
+                if (ruoliPossibili.includes(ruoloPrioritario)) {
+                    return ruoloPrioritario;
+                }
+            }
+        }
+
+        function aggiornaCampiNomiSquadre() {
+            const container = document.getElementById('nomi_squadre');
+            const num = parseInt(document.getElementById('participantsSetting').value);
+            container.innerHTML = '';
+
+            for (let i = 0; i < num; i++) {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'filter-input';
+                input.placeholder = `Squadra ${i + 1}`;
+                input.value = gameSettings.nomiSquadre[i] || '';
+                input.id = `squadra_nome_${i}`;
+
+                div.appendChild(input);
+                container.appendChild(div);
+            }
+        }
+
+        function getMoltiplicatoriRuolo() {
+            if (gameSettings.modalita == 'mantra') {
+                return {
+                    Por: gameSettings.modificatoreDifesa != 0 && gameSettings.bonusImbattibilita ? 1.4
+                        : gameSettings.modificatoreDifesa == 0 && gameSettings.bonusImbattibilita ? 1.25
+                            : gameSettings.modificatoreDifesa != 0 && !gameSettings.bonusImbattibilita ? 1.1
+                                : 1,
+                    Dc: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(2, calcolaMoltiplicatoreRuolo('Dc'))
+                        : Math.max(2, calcolaMoltiplicatoreRuolo('Dc')),
+                    B: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(0.75, calcolaMoltiplicatoreRuolo('B'))
+                        : Math.max(0.75, calcolaMoltiplicatoreRuolo('B')),
+                    Dd: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(0.75, calcolaMoltiplicatoreRuolo('Dd'))
+                        : Math.max(0.75, calcolaMoltiplicatoreRuolo('Dd')),
+                    Ds: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(0.75, calcolaMoltiplicatoreRuolo('Ds'))
+                        : Math.max(0.75, calcolaMoltiplicatoreRuolo('Ds')),
+                    E: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(1, calcolaMoltiplicatoreRuolo('E'))
+                        : Math.max(1, calcolaMoltiplicatoreRuolo('E')),
+                    M: gameSettings.modificatoreDifesa == 1
+                        ? 1.2 * Math.max(1, calcolaMoltiplicatoreRuolo('M'))
+                        : Math.max(1, calcolaMoltiplicatoreRuolo('E')),
+                    C: Math.max(1.5, calcolaMoltiplicatoreRuolo('C')),
+                    T: Math.max(1, calcolaMoltiplicatoreRuolo('T')),
+                    W: Math.max(1, calcolaMoltiplicatoreRuolo('W')),
+                    A: Math.max(1, calcolaMoltiplicatoreRuolo('A')),
+                    Pc: Math.max(1.5, calcolaMoltiplicatoreRuolo('Pc')),
+                }
+            } else {
+                return {
+                    P: gameSettings.modificatoreDifesa != 0 && gameSettings.bonusImbattibilita ? 1.4
+                        : gameSettings.modificatoreDifesa == 0 && gameSettings.bonusImbattibilita ? 1.25
+                            : gameSettings.modificatoreDifesa != 0 && !gameSettings.bonusImbattibilita ? 1.1
+                                : 1,
+                    D: gameSettings.modificatoreDifesa == 3
+                        ? 1.2 * Math.max(3, calcolaMoltiplicatoreRuolo('D'))
+                        : (gameSettings.modificatoreDifesa == 6
+                            ? 1.4 * Math.max(3, calcolaMoltiplicatoreRuolo('D'))
+                            : Math.max(3, calcolaMoltiplicatoreRuolo('D'))),
+                    C: Math.max(3, calcolaMoltiplicatoreRuolo('C')),
+                    A: Math.max(3, calcolaMoltiplicatoreRuolo('A')),
+                }
+            }
+        }
+
+        function changeModSettings() {
+            const isMantra = document.getElementById('modalitaSetting').value === 'mantra';
+
+            const classicOptions = document.getElementsByClassName('classic_mod');
+            for (let opt of classicOptions) {
+                opt.style.display = isMantra ? 'none' : 'block';
+            }
+
+            const mantraOptions = document.getElementsByClassName('mantra_mod');
+            for (let opt of mantraOptions) {
+                opt.style.display = isMantra ? 'block' : 'none';
+            }
+
+            document.getElementById('titolo_mod').textContent = isMantra ? 'D Factor:' : 'Modificatore difesa:';
+        }
+
+        function openSettingsModal() {
+            aggiornaCampiNomiSquadre();
+            changeModSettings();
+            document.getElementById('modalitaSetting').value = gameSettings.modalita;
+            document.getElementById('imbattibilitaSetting').value = gameSettings.bonusImbattibilita;
+            document.getElementById('modSetting').value = gameSettings.modificatoreDifesa;
+            document.getElementById('budgetSetting').value = gameSettings.budget;
+            document.getElementById('maxMovSetting').value = gameSettings.maxMov;
+            document.getElementById('maxPortieriSetting').value = gameSettings.maxPor
+            document.getElementById('participantsSetting').value = gameSettings.participants;
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const newBudget = parseInt(document.getElementById('budgetSetting').value);
+            const newParticipants = parseInt(document.getElementById('participantsSetting').value);
+
+            if (newBudget < 1 || newParticipants < 6 || newParticipants > 20) {
+                alert('Valori non validi! Controlla i limiti inseriti.');
+                return;
+            }
+
+            gameSettings.maxMov = document.getElementById('maxMovSetting').value;
+            gameSettings.maxPor = document.getElementById('maxPortieriSetting').value;
+            gameSettings.bonusImbattibilita = document.getElementById('imbattibilitaSetting').value;
+            gameSettings.modificatoreDifesa = document.getElementById('modSetting').value;
+            gameSettings.modalita = document.getElementById('modalitaSetting').value;
+            gameSettings.budget = newBudget;
+            gameSettings.participants = newParticipants;
+
+            const nuoviNomi = [];
+            for (let i = 0; i < newParticipants; i++) {
+                const nome = document.getElementById(`squadra_nome_${i}`)?.value.trim() || `Squadra ${i + 1}`;
+                nuoviNomi.push(nome);
+            }
+            gameSettings.nomiSquadre = nuoviNomi;
+
+            populateModulo();
+            initializeTeams();
+
+            valoreMedioRuoli = calcolaValoreMedioRuoli();
+            recalculatePrices();
+
+            updateStats();
+            populateTeamSelect();
+            populateFiltroRuoli();
+            renderTeams();
+
+            saveState();
+            closeSettingsModal();
+            alert('Impostazioni salvate! Le squadre sono state resettate.');
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('playersTab').classList.remove('active');
+            document.getElementById('fieldTab').classList.remove('active');
+            document.getElementById('astaTab').classList.remove('active');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function calcolaFMFormazione(formazione) {
+            return Object.values(formazione).reduce((acc, player) => {
+                return acc + (player ? player['Fm Attesa'] : 0);
+            }, 0);
+        }
+
+        function giocatoreCompatibileConPosizione(giocatore, posizione) {
+            if (gameSettings.modalita == 'mantra') {
+                const playerRoles = giocatore.Ruolo.split('/');
+                const positionRoles = posizione.split('/');
+                return playerRoles.some(role => positionRoles.includes(role));
+            } else {
+                return giocatore.RuoloClassic == posizione;
+            }
+        }
+
+        function riposizionaGiocatoriInNuovoModulo(squadra, nuovoModulo) {
+            const nuovaFormazione = {};
+            const slotsNuovoModulo = getFormationSlots(nuovoModulo);
+            const giocatoriAssegnatiId = new Set();
+
+            // Ordina tutti i giocatori per Fm Attesa decrescente
+            const tuttiGiocatoriRosa = [...squadra.rosa].sort((a, b) => b['Fm Attesa'] - a['Fm Attesa']);
+
+            // Prima fase: assegna i giocatori migliori a ogni slot
+            slotsNuovoModulo.forEach(slot => {
+                let migliorGiocatore = null;
+                let migliorFm = -1;
+
+                // Cerca il miglior giocatore disponibile per questo slot
+                for (const giocatore of tuttiGiocatoriRosa) {
+                    // Verifica che il giocatore non sia già assegnato e sia compatibile
+                    if (!giocatoriAssegnatiId.has(giocatore.Id) &&
+                        giocatoreCompatibileConPosizione(giocatore, slot.position)) {
+
+                        if (giocatore['Fm Attesa'] > migliorFm) {
+                            migliorGiocatore = giocatore;
+                            migliorFm = giocatore['Fm Attesa'];
+                        }
+                    }
+                }
+
+                // Assegna il miglior giocatore trovato
+                if (migliorGiocatore) {
+                    nuovaFormazione[slot.slotId] = migliorGiocatore;
+                    giocatoriAssegnatiId.add(migliorGiocatore.Id);
+                }
+            });
+
+            // Seconda fase: ottimizzazione con scambi per migliorare la formazione complessiva
+            let miglioramentoTrovato = true;
+            while (miglioramentoTrovato) {
+                miglioramentoTrovato = false;
+
+                // Per ogni slot della formazione
+                for (const slot of slotsNuovoModulo) {
+                    const giocatoreCorrente = nuovaFormazione[slot.slotId];
+                    if (!giocatoreCorrente) continue;
+
+                    // Cerca un giocatore migliore non assegnato
+                    for (const candidato of tuttiGiocatoriRosa) {
+                        if (!giocatoriAssegnatiId.has(candidato.Id) &&
+                            giocatoreCompatibileConPosizione(candidato, slot.position) &&
+                            candidato['Fm Attesa'] > giocatoreCorrente['Fm Attesa']) {
+
+                            // Effettua lo scambio
+                            giocatoriAssegnatiId.delete(giocatoreCorrente.Id);
+                            giocatoriAssegnatiId.add(candidato.Id);
+                            nuovaFormazione[slot.slotId] = candidato;
+
+                            miglioramentoTrovato = true;
+                            break;
+                        }
+                    }
+
+                    if (miglioramentoTrovato) break;
+                }
+            }
+
+            // Calcola i giocatori rimasti in panchina
+            const giocatoriInPanchina = tuttiGiocatoriRosa.filter(player =>
+                !giocatoriAssegnatiId.has(player.Id)
+            );
+
+            return {
+                formazione: nuovaFormazione,
+                giocatoriRimossi: giocatoriInPanchina
+            };
+        }
+
+        function autoInserisciGiocatore(nuovoGiocatore, nomeSquadra) {
+            const squadra = squadre[nomeSquadra];
+
+            if (!squadra.rosa.some(p => p.Id === nuovoGiocatore.Id)) {
+                squadra.rosa.push(nuovoGiocatore);
+            }
+
+            const risultatoRiposizionamento = riposizionaGiocatoriInNuovoModulo(squadra, squadra.modulo);
+            squadra.formazione = risultatoRiposizionamento.formazione;
+
+            console.log(`${nuovoGiocatore.Nome} acquistato da ${nomeSquadra.toUpperCase()} e la formazione è stata ottimizzata.`);
+
+            const idsInFormazione = Object.values(squadra.formazione)
+                .filter(g => g)
+                .map(g => g.Id);
+            const idsUnici = new Set(idsInFormazione);
+
+            if (idsInFormazione.length !== idsUnici.size) {
+                console.error("ERRORE: ID duplicati rilevati nella formazione!");
+                return false;
+            }
+
+            return true;
+        }
+
+        async function loadPlayersFromExcel() {
+            try {
+                const excelUrl = './Quotazioni_Fantacalcio_Stagione_2025_26.xlsx';
+
+                const response = await fetch(excelUrl);
+                if (!response.ok) {
+                    throw new Error(`Errore HTTP: ${response.status}`);
+                }
+
+                const fileBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(fileBuffer, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                rawPlayers = jsonData.map((row, index) => {
+                    return {
+                        id: index + 1,
+                        nome: (row.Nome).toString().trim(),
+                        squadra: (row.Squadra).toString().trim(),
+                        ruolo: (row.RM).toString().trim(),
+                        ruoloClassic: (row.R).toString().trim(),
+                        fm: parseFloat(row.Fm),
+                        pv: parseFloat(row.Pv)
+                    };
+                }).filter(player => player.nome && player.ruolo && player.fm > 0 && player.pv >= 0);
+
+                valoreMedioRuoli = calcolaValoreMedioRuoli();
+
+                giocatoriDisponibili = rawPlayers.map(player => {
+                    let ruolo = '';
+                    let prezzo = 0;
+                    const ruoli = player.ruolo.split(';').map(r => r.trim());
+                    const prezzi = ruoli.map(ruolo =>
+                        calcoloPrezzoGiocatore(player, ruolo)
+                    );
+                    prezzo = prezzi.join('.')
+                    ruolo = ruoli.join('/')
+                    return {
+                        id: player.id,
+                        nome: player.nome,
+                        squadra: player.squadra,
+                        ruolo: ruolo,
+                        ruoloClassic: player.ruoloClassic,
+                        fm: player.fm,
+                        prezzo: prezzo,
+                        pv: player.pv,
+                    };
+                });
+
+                if (giocatoriDisponibili.length === 0) {
+                    throw new Error('Nessun giocatore valido trovato nel file Excel. Verifica che le colonne siano nominate correttamente (Nome, Squadra, Ruolo/Rm, Fm).');
+                }
+
+                giocatoriDisponibili.sort((a, b) => b.fm - a.fm);
+
+                renderPlayers();
+                updateStats();
+
+                return true;
+
+            } catch (error) {
+                console.error('Errore nel caricamento del file Excel:', error);
+                alert('Errore nel caricamento del file Excel: ' + error.message);
+                return false;
+            }
+        }
+
+        function initializeApp() {
+            if (loadState()) return
+            loadPlayersFromExcel();
+            populateModulo();
+            initializeTeams();
+            setupEventListeners();
+            populateTeamSelect();
+            populateFiltroRuoli();
+            updateStats();
+            renderPlayers();
+            renderTeams();
+
+
+        }
+
+        function changeModule() {
+            if (!currentTeamView) {
+                alert('Seleziona prima una squadra per cambiare il modulo!');
+                return;
+            }
+
+            const newModule = document.getElementById('moduleSelect').value;
+            const squadra = squadre[currentTeamView];
+            const oldModule = squadra.modulo;
+
+            if (newModule === oldModule) return;
+
+            recalculatePrices();
+
+            const risultatoRiposizionamento = riposizionaGiocatoriInNuovoModulo(squadra, newModule);
+
+            squadra.modulo = newModule;
+            squadra.formazione = risultatoRiposizionamento.formazione;
+
+            if (risultatoRiposizionamento.giocatoriRimossi.length > 0) {
+                const playerNames = risultatoRiposizionamento.giocatoriRimossi.map(p => p.Nome).join(', ');
+                console.log(`Giocatori non inseriti in campo per incompatibilità o FM inferiore: ${playerNames}`);
+            } else {
+                console.log(`Tutti i giocatori sono stati riposizionati nella formazione ${newModule}.`);
+            }
+
+            renderTeamDetails();
+            renderField();
+        }
+
+        function getFormationSlots(modulo) {
+            const formationLines = getFormationLines(modulo);
+            const slots = [];
+
+            formationLines.forEach((line, lineIndex) => {
+                line.forEach((position, posIndex) => {
+                    slots.push({
+                        slotId: `${lineIndex}-${posIndex}`,
+                        position: position
+                    });
+                });
+            });
+
+            return slots;
+        }
+
+        function calcolaValoreMedioRuoli() {
+            const dfFiltered = rawPlayers.filter(row => row.pv >= 19);
+
+            const nPartecipanti = gameSettings.participants;
+            const risultati = {};
+            for (const [ruolo, moltiplicatore] of Object.entries(getMoltiplicatoriRuolo())) {
+                const giocatoriRuolo = gameSettings.modalita == 'mantra' ?
+                    dfFiltered.filter(row => (row.ruolo).includes(ruolo))
+                    : dfFiltered.filter(row => row.ruoloClassic == ruolo);
+                if (giocatoriRuolo.length === 0) {
+                    risultati[ruolo] = 0;
+                    continue;
+                }
+
+                const ordinati = [...giocatoriRuolo].sort((a, b) => b.fm - a.fm);
+                let nGiocatoriDaPrendere = Math.floor(nPartecipanti * moltiplicatore);
+                nGiocatoriDaPrendere = Math.min(nGiocatoriDaPrendere, ordinati.length);
+
+                if (nGiocatoriDaPrendere === 0) {
+                    risultati[ruolo] = 0;
+                } else {
+                    let posizioneTaglio = nGiocatoriDaPrendere - 1;
+                    if (posizioneTaglio >= ordinati.length) {
+                        posizioneTaglio = ordinati.length - 1;
+                    }
+
+                    const percentile = (posizioneTaglio / ordinati.length) * 100;
+                    const finestraPercentile = 5;
+                    const percentileMin = Math.max(0, percentile - finestraPercentile);
+                    const percentileMax = Math.min(100, percentile + finestraPercentile);
+
+                    const posMin = Math.floor((percentileMin / 100) * ordinati.length);
+                    let posMax = Math.floor((percentileMax / 100) * ordinati.length);
+                    if (posMax <= posMin) posMax = posMin + 1;
+
+                    const giocatoriPercentile = ordinati.slice(posMin, posMax);
+                    const somma = giocatoriPercentile.reduce((acc, g) => acc + g.fm, 0);
+                    const media = somma / giocatoriPercentile.length;
+                    risultati[ruolo] = parseFloat(media.toFixed(2));
+                }
+            }
+            return risultati;
+        }
+
+        function calcolaValoreModulo(modulo) {
+            let valoreModulo = 0;
+
+            for (const [ruoloModulo, quantita] of Object.entries(modulo)) {
+                const ruoliPossibili = ruoloModulo.split("/");
+                let valoreRuoloMax = 0;
+
+                for (const ruolo of ruoliPossibili) {
+                    if (valoreMedioRuoli[ruolo]) {
+                        valoreRuoloMax = Math.max(valoreRuoloMax, valoreMedioRuoli[ruolo]);
+                    }
+                }
+
+                valoreModulo += valoreRuoloMax * quantita;
+            }
+
+            return parseFloat(valoreModulo.toFixed(2));
+        }
+
+        function getFmAmbita() {
+            const participants = gameSettings.participants
+            if (participants < 6 || participants > 20 || participants % 2 !== 0) return null;
+            return 74 - ((participants - 6) / 2) * 0.5;
+        }
+
+        function calcoloPrezzoGiocatore(player, ruolo) {
+            try {
+                const fmAmbitaValue = getFmAmbita();
+                const budgetAsta = gameSettings.budget;
+                const valoreRuolo = valoreMedioRuoli[ruolo];
+                const budgetIncrementale = budgetAsta * 0.7;
+                const prezzoMedioScheletro = (budgetAsta * 0.25) / 11;
+                let valore_modulo = 0;
+                Object.keys(squadre).forEach(teamId => {
+                    valore_modulo += calcolaValoreModulo(moduliFantacalcio[gameSettings.modalita][squadre[teamId].modulo]);
+                });
+                valoreModulo = valore_modulo / gameSettings.participants
+
+                const pvFactor = 0.05 + (player.pv / 38) * 1.1;
+                let prezzo = ((player.fm - valoreRuolo) / (fmAmbitaValue - valoreModulo)) * budgetIncrementale;
+                prezzo = prezzo * pvFactor;
+                if (prezzo > prezzoMedioScheletro) {
+                    return Math.max(Math.round(prezzo), Math.round(prezzoMedioScheletro));
+                } else {
+                    const minInput = -prezzoMedioScheletro;
+                    const scaledPrezzo = 1 + ((prezzo - minInput) * (prezzoMedioScheletro - 1)) / (prezzoMedioScheletro - minInput);
+                    return Math.max(1, Math.round(scaledPrezzo));
+                }
+            } catch (error) {
+                console.error('Errore nel calcolo prezzo:', error);
+                return 1;
+            }
+        }
+
+        function recalculatePrices() {
+
+            giocatoriDisponibili.forEach(player => {
+                let ruolo = '';
+                let prezzo = 0;
+                if (gameSettings.modalita == 'mantra') {
+                    const ruoli = player.ruolo.split('/').map(r => r.trim());
+                    const prezzi = ruoli.map(ruolo =>
+                        calcoloPrezzoGiocatore(player, ruolo)
+                    );
+                    player.prezzo = prezzi.join('.')
+                    player.ruolo = ruoli.join('/')
+                } else {
+                    player.prezzo = calcoloPrezzoGiocatore(player, player.ruoloClassic);
+                }
+            });
+
+            renderPlayers();
+            updateStats();
+            saveState();
+        }
+
+        function populateTeamSelect() {
+            const fieldTeamSelect = document.getElementById('fieldTeamSelectDropdown');
+            fieldTeamSelect.innerHTML = '<option value="">Seleziona squadra</option>';
+
+            Object.keys(squadre).forEach(nome => {
+                const option2 = document.createElement('option');
+                option2.value = nome;
+                option2.textContent = nome.toUpperCase();
+                fieldTeamSelect.appendChild(option2);
+            });
+        }
+
+        function populateFiltroRuoli() {
+            const filterRole = document.getElementById('filterRole');
+            if (gameSettings.modalita == 'mantra') {
+                filterRole.innerHTML = `
+                            <option value="">Tutti i ruoli</option>
+                            <option value="Por">Portieri</option>
+                            <option value="Dc">Difensori Centrali</option>
+                            <option value="Dd">Terzini Destri</option>
+                            <option value="Ds">Terzini Sinistri</option>
+                            <option value="B">Braccetti</option>
+                            <option value="E">Esterni</option>
+                            <option value="M">Mediani</option>
+                            <option value="C">Centrocampisti</option>
+                            <option value="T">Trequartisti</option>
+                            <option value="W">Ali</option>
+                            <option value="A">Seconde Punte</option>
+                            <option value="Pc">Prime Punte</option>`
+            } else {
+                filterRole.innerHTML = `
+                            <option value="">Tutti i ruoli</option>
+                            <option value="Por">Portieri</option>
+                            <option value="D">Difensori</option>
+                            <option value="C">Centrocampisti</option>
+                            <option value="A">Attaccanti</option>`
+            }
+        }
+
+        function populateModulo() {
+            const moduleSelect = document.getElementById('moduleSelect');
+            if (gameSettings.modalita == 'mantra') {
+                moduleSelect.innerHTML = `
+                            <option value="3-4-3">3-4-3</option>
+                            <option value="3-4-1-2">3-4-1-2</option>
+                            <option value="3-4-2-1" selected>3-4-2-1</option>
+                            <option value="3-5-2">3-5-2</option>
+                            <option value="3-5-1-1">3-5-1-1</option>
+                            <option value="4-3-3">4-3-3</option>
+                            <option value="4-3-1-2">4-3-1-2</option>
+                            <option value="4-4-2">4-4-2</option>
+                            <option value="4-1-4-1">4-1-4-1</option>
+                            <option value="4-4-1-1">4-4-1-1</option>
+                            <option value="4-2-3-1">4-2-3-1</option>`
+            } else {
+                moduleSelect.innerHTML = `
+                            <option value="3-4-3" ${gameSettings.modificatoreDifesa == 0 ? 'selected' : ''}>3-4-3</option>
+                            <option value="3-5-2">3-5-2</option>
+                            <option value="4-3-3" ${gameSettings.modificatoreDifesa != 0 ? 'selected' : ''}>4-3-3</option>
+                            <option value="4-4-2">4-4-2</option>
+                            <option value="4-5-1">4-5-1</option>
+                            <option value="5-3-2">5-3-2</option>
+                            <option value="5-4-1">5-4-1</option>
+                            `
+            }
+
+        }
+
+        function changeTeamView(selectedTeam) {
+            const selectedTeamInfo = document.getElementById('selectedTeamInfo');
+            const teamsOverview = document.getElementById('teamsOverview');
+
+            if (selectedTeam) {
+                currentTeamView = selectedTeam;
+                selectedTeamInfo.style.display = 'block';
+                teamsOverview.style.display = 'none';
+
+                const moduleSelect = document.getElementById('moduleSelect');
+                moduleSelect.value = squadre[selectedTeam].modulo;
+                renderTeamDetails();
+
+                // Update field team select to match
+                document.getElementById('fieldTeamSelectDropdown').value = selectedTeam;
+                renderField();
+            } else {
+                currentTeamView = null;
+                selectedTeamInfo.style.display = 'none';
+                teamsOverview.style.display = 'block';
+                renderTeams();
+            }
+        }
+
+        function changeFieldTeam() {
+            const selectedTeam = document.getElementById('fieldTeamSelectDropdown').value;
+            changeTeamView(selectedTeam)
+            if (selectedTeam) {
+                currentTeamView = selectedTeam;
+                const moduleSelect = document.getElementById('moduleSelect');
+                moduleSelect.value = squadre[selectedTeam].modulo;
+                renderField();
+            }
+        }
+
+        function renderTeamDetails() {
+            if (!currentTeamView) return;
+
+            const squadra = squadre[currentTeamView];
+            const details = document.getElementById('selectedTeamDetails');
+            const roster = document.getElementById('selectedTeamRoster');
+
+            const totalSpent = gameSettings.budget - squadra.budget;
+            const fm_titolare = calcolaFMFormazione(squadra.formazione);
+
+            const portieri = squadra.rosa.filter(p => {
+                if (gameSettings.modalita == 'mantra') {
+                    return p.Ruolo.split('/').includes('Por')
+                } else {
+                    return p.RuoloClassic.includes('P')
+                }
+            });
+
+            const mov = squadra.rosa.filter(p => {
+                return !p.Ruolo.split('/').includes('Por')
+            });
+
+            const dif = squadra.rosa.filter(p => {
+                return p.RuoloClassic == 'D'
+            });
+
+            const cc = squadra.rosa.filter(p => {
+                return p.RuoloClassic == 'C'
+            });
+            const att = squadra.rosa.filter(p => {
+                return p.RuoloClassic == 'A'
+            });
+
+            const labelPlayer = gameSettings.modalita == 'mantra' ?
+                `P: ${portieri.length}/${gameSettings.maxPor} | Mov: ${mov.length}/${gameSettings.maxMov} | ${squadra.modulo} | FM: ${parseFloat(fm_titolare.toFixed(2))} `
+                : `P: ${portieri.length}/3 | D: ${dif.length}/8  | C: ${cc.length}/8 | A: ${att.length}/6 | FM: ${parseFloat(fm_titolare.toFixed(2))}`;
+
+            details.innerHTML = `
+                <div class="team-header">
+                    <div class="team-name">${currentTeamView.toUpperCase()}</div>
+                    <div class="team-budget">${squadra.budget}</div>
+                </div>
+                <div class="team-players">
+                    ${labelPlayer}
+                </div>
+            `;
+
+            if (squadra.rosa.length > 0) {
+                roster.innerHTML = squadra.rosa.map(p => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <div>
+                            ${gameSettings.modalita == 'mantra' ? p.Ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${p.RuoloClassic}</span>`}
+                            <strong>${p.Nome}</strong> (${p.Squadra}) - FM: ${parseFloat(p['Fm Attesa'].toFixed(2))}
+                        </div>
+                        <div>
+                            <span class="price-badge">${p.Prezzo}</span>
+                            <button class="btn btn-danger" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;" onclick="removePlayer(${p.Id})">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                roster.innerHTML = '<p style="color: #666; text-align: center;">Nessun giocatore in rosa</p>';
+            }
+        }
+
+        function renderField() {
+            const fieldFormation = document.getElementById('fieldFormation');
+            const fieldContainer = document.getElementsByClassName('field-container')
+
+            if (!currentTeamView) {
+                fieldContainer[0].style.display = 'none'
+                return;
+            } else {
+                fieldContainer[0].style.display = 'block'
+            }
+
+            const squadra = squadre[currentTeamView];
+            const formationLines = getFormationLines(squadra.modulo);
+
+            fieldFormation.innerHTML = '';
+
+            formationLines.forEach((line, lineIndex) => {
+                const formationLine = document.createElement('div');
+                formationLine.className = 'formation-line';
+
+                line.forEach((position, posIndex) => {
+                    const playerSlot = document.createElement('div');
+                    const slotId = `${lineIndex}-${posIndex}`;
+                    playerSlot.className = 'player-slot';
+                    playerSlot.id = slotId;
+
+                    if (position === 'Por' || position === 'P') {
+                        playerSlot.classList.add('goalkeeper');
+                    }
+
+                    const assignedPlayer = squadra.formazione[slotId];
+                    if (assignedPlayer) {
+                        playerSlot.classList.add('filled');
+                        playerSlot.innerHTML = `
+                            ${assignedPlayer.Nome}
+                            <button class="player-remove" onclick="removeFromField('${slotId}')">&times;</button>
+                        `;
+                    } else {
+                        playerSlot.textContent = position;
+                        playerSlot.onclick = () => openPlayerAssignModal(slotId, position);
+                    }
+
+                    formationLine.appendChild(playerSlot);
+                });
+
+                fieldFormation.appendChild(formationLine);
+            });
+        }
+
+        function getFormationLines(modulo) {
+            let classicFormations = {
+                "3-4-3": [
+                    ["Por"],
+                    ["D", "D", "D"],
+                    ["C", "C", "C", "C"],
+                    ["A", "A", "A"]
+                ],
+                "3-5-2": [
+                    ["Por"],
+                    ["D", "D", "D"],
+                    ["C", "C", "C", "C", "C"],
+                    ["A", "A"]
+                ],
+                "4-3-3": [
+                    ["Por"],
+                    ["D", "D", "D", , "D"],
+                    ["C", "C", "C"],
+                    ["A", "A", "A"]
+                ],
+                "4-4-2": [
+                    ["Por"],
+                    ["D", "D", "D", "D"],
+                    ["C", "C", "C", "C"],
+                    ["A", "A"]
+                ],
+                "4-5-1": [
+                    ["Por"],
+                    ["D", "D", "D", "D"],
+                    ["C", "C", "C", "C", "C"],
+                    ["A"]
+                ],
+                "5-3-2": [
+                    ["Por"],
+                    ["D", "D", "D", "D", "D"],
+                    ["C", "C", "C"],
+                    ["A", "A"]
+                ],
+                "5-4-1": [
+                    ["Por"],
+                    ["D", "D", "D", "D", "D"],
+                    ["C", "C", "C", "C"],
+                    ["A"]
+                ],
+            }
+            let mantraFormations = {
+                "3-4-3": [
+                    ["Por"],
+                    ["Dc", "Dc", "Dc/B"],
+                    ["E", "M/C", "C", "E"],
+                    ["W/A", "A/Pc", "W/A"]
+                ],
+                "3-4-1-2": [
+                    ["Por"],
+                    ["Dc", "Dc", "Dc/B"],
+                    ["E", "M/C", "C", "E"],
+                    ["T"],
+                    ["A/Pc", "A/Pc"],
+                ],
+                "3-4-2-1": [
+                    ["Por"],
+                    ["Dc", "Dc", "Dc/B"],
+                    ["E", "M/C", "M", "E/W"],
+                    ["T", 'T/A'],
+                    ["A/Pc"],
+                ],
+                "3-5-1-1": [
+                    ["Por"],
+                    ["Dc", "Dc", "Dc/B"],
+                    ["E/W", "M", "C", "M", "E/W"],
+                    ['T/A'],
+                    ["A/Pc"],
+                ],
+                "3-5-2": [
+                    ["Por"],
+                    ["Dc", "Dc", "Dc/B"],
+                    ["E", "C", "M", "M/C", "E/W"],
+                    ["A/Pc", "A/Pc"]
+                ],
+                "4-3-3": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["M/C", "M", "C"],
+                    ["W/A", "A/Pc", "W/A"]
+                ],
+                "4-3-1-2": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["M/C", "M", "C"],
+                    ["T"],
+                    ["T/A", "A/Pc"],
+                ],
+                "4-1-4-1": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["M"],
+                    ["E/W", "C/T", "T", "W"],
+                    ["A/Pc"],
+                ],
+                "4-4-1-1": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["E/W", "C", "M", "E/W"],
+                    ['T/A'],
+                    ["A/Pc"],
+                ],
+                "4-2-3-1": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["M/C", "M"],
+                    ['W/T', 'T', 'W/A'],
+                    ["A/Pc"],
+                ],
+                "4-4-2": [
+                    ["Por"],
+                    ["Dd", "Dc", "Dc", "Ds"],
+                    ["E", "M/C", "C", "E/W"],
+                    ["A/Pc", "A/Pc"]
+                ],
+            };
+
+            return gameSettings.modalita == 'mantra' ? mantraFormations[modulo] : classicFormations[modulo];
+        }
+
+        function openPlayerAssignModal(slotId, position) {
+            if (!currentTeamView) return;
+
+            const squadra = squadre[currentTeamView];
+            const playersAlreadyInFormationIds = new Set(Object.values(squadra.formazione).map(p => p.Id));
+
+            const availablePlayers = squadra.rosa.filter(p => {
+                if (playersAlreadyInFormationIds.has(p.Id)) {
+                    return false;
+                }
+                return giocatoreCompatibileConPosizione(p, position);
+            }).sort((a, b) => b['Fm Attesa'] - a['Fm Attesa']);
+
+            if (availablePlayers.length === 0) {
+                alert(`Nessun giocatore disponibile in panchina per la posizione ${position} che non sia già in campo.`);
+                return;
+            }
+
+            const playerName = prompt(
+                `Seleziona giocatore per ${position}:\n` +
+                availablePlayers.map((p, i) => `${i + 1}. ${p.Nome} (${gameSettings.modalita == 'mantra' ? p.Ruolo : p.RuoloClassic}) - FM: ${parseFloat(p['Fm Attesa'].toFixed(2))}`).join('\n') +
+                '\n\nInserisci il numero:'
+            );
+
+            const playerIndex = parseInt(playerName) - 1;
+            if (playerIndex >= 0 && playerIndex < availablePlayers.length) {
+                const selectedPlayer = availablePlayers[playerIndex];
+                squadra.formazione[slotId] = selectedPlayer;
+                renderTeamDetails();
+                renderField();
+            } else if (playerName !== null && playerName.trim() !== '') {
+                alert('Selezione non valida. Inserisci un numero valido.');
+            }
+        }
+
+        function removeFromField(slotId) {
+            if (!currentTeamView) return;
+
+            const squadra = squadre[currentTeamView];
+            const playerToRemove = squadra.formazione[slotId];
+
+            if (playerToRemove) {
+                delete squadra.formazione[slotId];
+            }
+            renderTeamDetails();
+            renderField();
+        }
+
+        function removePlayer(playerId) {
+            if (!currentTeamView) return;
+
+            const squadra = squadre[currentTeamView];
+            const playerIndex = squadra.rosa.findIndex(p => p.Id === playerId);
+
+            if (playerIndex === -1) return;
+
+            const player = squadra.rosa[playerIndex];
+
+            Object.keys(squadra.formazione).forEach(slotId => {
+                if (squadra.formazione[slotId] && squadra.formazione[slotId].Id === playerId) {
+                    delete squadra.formazione[slotId];
+                }
+            });
+
+            squadra.rosa.splice(playerIndex, 1);
+            squadra.budget += player.Prezzo;
+
+            const originalPlayer = {
+                id: player.Id,
+                nome: player.Nome,
+                squadra: player.Squadra,
+                ruolo: player.Ruolo,
+                ruoloClassic: player.RuoloClassic,
+                fm: player['Fm Attesa'],
+                prezzo: player.Prezzo,
+                pv: player.pv || 0,
+            };
+
+            giocatoriDisponibili.push(originalPlayer);
+            giocatoriDisponibili.sort((a, b) => b.fm - a.fm);
+
+            const risultatoRiposizionamento = riposizionaGiocatoriInNuovoModulo(squadra, squadra.modulo);
+            squadra.formazione = risultatoRiposizionamento.formazione;
+            recalculatePrices();
+            renderPlayers();
+            renderTeams();
+            renderTeamDetails();
+            renderField();
+            updateStats();
+
+            alert(`${player.Nome} rimosso dalla rosa di ${currentTeamView.toUpperCase()}`);
+        }
+
+        function renderPlayers() {
+            const tbody = document.getElementById('playersTableBody');
+
+            const searchTerm = document.getElementById('searchPlayer').value.toLowerCase();
+            const roleFilter = document.getElementById('filterRole').value;
+
+            let filteredPlayers = giocatoriDisponibili.filter(player => {
+                const nameMatch = player.nome.toLowerCase().includes(searchTerm);
+                const roleMatch = gameSettings.modalita == 'mantra' ? !roleFilter || player.ruolo.includes(roleFilter) : !roleFilter || player.ruoloClassic.includes(roleFilter);
+                return nameMatch && roleMatch;
+            });
+
+            tbody.innerHTML = '';
+            filteredPlayers.forEach(player => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${player.nome}</strong></td>
+                    <td>${player.squadra}</td>
+                    <td>${gameSettings.modalita == 'mantra' ? player.ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${player.ruoloClassic}</span>`}</span></td>
+                    <td class="desk-only">
+                        <input type="number" 
+                            step="0.1" 
+                            min="4" 
+                            max="10" 
+                            value="${parseFloat(player.fm.toFixed(1))}" 
+                            onblur="changeFM(${player.id}, this.value)"
+                            class="filter-input">
+                    </td>
+                    <td class="desk-only">
+                        <input type="number" 
+                            step="1" 
+                            min="0"
+                            max="38" 
+                            value="${parseFloat(player.pv.toFixed(1))}" 
+                            onblur="changePV(${player.id}, this.value)"
+                            class="filter-input">
+                    </td>  
+                    <td class="desk-only">${codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</td>
+                    <td class="player-actions">
+                        <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="openBuyModal(${player.id})">💰</button>
+                    </td>
+                `;
+            });
+        }
+
+        function changeFM(playerId, newValue) {
+            let currentPlayer = giocatoriDisponibili.find(p => p.id === playerId)
+            currentPlayer.fm = parseFloat(newValue);
+            recalculatePrices()
+        }
+
+        function changePV(playerId, newValue) {
+            let currentPlayer = giocatoriDisponibili.find(p => p.id === playerId)
+            currentPlayer.pv = parseFloat(newValue);
+            recalculatePrices()
+        }
+
+        function renderTeams() {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+
+            Object.entries(squadre).forEach(([nome, squadra]) => {
+                const teamCard = document.createElement('div');
+                teamCard.className = 'team-card';
+
+                const fm_titolare = calcolaFMFormazione(squadra.formazione);
+
+                const portieri = squadra.rosa.filter(p => {
+                    if (gameSettings.modalita == 'mantra') {
+                        return p.Ruolo.split('/').includes('Por')
+                    } else {
+                        return p.RuoloClassic.includes('P')
+                    }
+                });
+
+                const mov = squadra.rosa.filter(p => {
+                    return !p.Ruolo.split('/').includes('Por')
+                });
+
+                const dif = squadra.rosa.filter(p => {
+                    return p.RuoloClassic == 'D'
+                });
+
+                const cc = squadra.rosa.filter(p => {
+                    return p.RuoloClassic == 'C'
+                });
+                const att = squadra.rosa.filter(p => {
+                    return p.RuoloClassic == 'A'
+                });
+
+                const labelPlayer = gameSettings.modalita == 'mantra' ?
+                    `P: ${portieri.length}/${gameSettings.maxPor} | Mov: ${mov.length}/${gameSettings.maxMov} | ${squadra.modulo} | FM: ${parseFloat(fm_titolare.toFixed(2))} `
+                    : `P: ${portieri.length}/3 | D: ${dif.length}/8  | C: ${cc.length}/8 | A: ${att.length}/6 | FM: ${parseFloat(fm_titolare.toFixed(2))}`;
+
+
+                teamCard.innerHTML = `
+                <div class="team-header">
+                    <div class="team-name">${nome.toUpperCase()}</div>
+                    <div class="team-budget">${squadra.budget}</div>
+                </div>
+                <div class="team-players">
+                    ${labelPlayer}
+                </div>
+                
+                    ${squadra.rosa.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            ${squadra.rosa.slice(0, 3).map(p => `<span class="role-badge">${p.Nome} (${gameSettings.modalita == 'mantra' ? p.Ruolo : p.RuoloClassic})</span>`).join(' ')}
+                            ${squadra.rosa.length > 3 ? `<span style="color: #666;">... +${squadra.rosa.length - 3}</span>` : ''}
+                        </div>
+                    ` : ''}
+            `;
+
+                container.appendChild(teamCard);
+            });
+        }
+
+        function openBuyModal(playerId, suggestedPrice = null) {
+            currentPlayer = giocatoriDisponibili.find(p => p.id === playerId);
+            if (!currentPlayer) return;
+
+            const modal = document.getElementById('buyModal');
+            const playerInfo = document.getElementById('playerInfo');
+            const teamSelect = document.getElementById('teamSelect');
+            const bidPrice = document.getElementById('bidPrice');
+
+            playerInfo.style.display = 'flex';
+
+            playerInfo.innerHTML = `
+                <div style="width: 30%;"> 
+                    <img style="width: 100%; border-radius: 8px;" 
+                         src="https://content.fantacalcio.it/web/campioncini/card/${currentPlayer.nome.replace(' ', '-').replace('.', '').toUpperCase()}.png" onerror="this.style.display='none'"/> 
+                </div>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 70%; margin-left: 10px;">
+                    <h3>${currentPlayer.nome}</h3>
+                    <br>
+                    <p><strong>Squadra:</strong> ${currentPlayer.squadra}</p>
+                    <p><strong>Ruolo:</strong> ${gameSettings.modalita == 'mantra' ? currentPlayer.ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${currentPlayer.ruoloClassic}</span>`}</p>
+                    <p><strong>FM:</strong> ${parseFloat(currentPlayer.fm.toFixed(1))}</p>
+                    <p><strong>PV:</strong> ${parseFloat(currentPlayer.pv.toFixed(1))}</p>
+                    <p><strong>Prezzo Consigliato:</strong> ${codificaPrezzo(currentPlayer.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</p>
+                    ${suggestedPrice ? `<p><strong>Prezzo Asta:</strong> <span class="price-badge" style="background: #e74c3c;">${suggestedPrice}</span></p>` : ''}
+                </div>
+            `;
+
+            teamSelect.innerHTML = '';
+            Object.entries(squadre).forEach(([nome, squadra]) => {
+                if (squadra.budget >= 1) {
+                    const option = document.createElement('option');
+                    option.value = nome;
+                    option.textContent = `${nome.toUpperCase()} (${squadra.budget})`;
+                    teamSelect.appendChild(option);
+                }
+            });
+
+            bidPrice.value = suggestedPrice || 1;
+            modal.style.display = 'block';
+        }
+
+        function confirmPurchase() {
+            const teamName = document.getElementById('teamSelect').value;
+            const price = parseInt(document.getElementById('bidPrice').value);
+
+            if (!teamName || !price || price < 1) {
+                alert('Seleziona una squadra e inserisci un prezzo valido!');
+                return;
+            }
+
+            const squadra = squadre[teamName];
+            if (price > squadra.budget) {
+                alert('Budget insufficiente!');
+                return;
+            }
+
+            const giocatoreRosa = {
+                Id: currentPlayer.id,
+                Nome: currentPlayer.nome,
+                Squadra: currentPlayer.squadra,
+                Ruolo: currentPlayer.ruolo,
+                RuoloClassic: currentPlayer.ruoloClassic,
+                'Fm Attesa': currentPlayer.fm,
+                Prezzo: price,
+                pv: currentPlayer.pv
+            };
+
+            squadra.rosa.push(giocatoreRosa);
+            squadra.budget -= price;
+
+            giocatoriDisponibili = giocatoriDisponibili.filter(p => p.id !== currentPlayer.id);
+
+            const inserimentoRiuscito = autoInserisciGiocatore(giocatoreRosa, teamName);
+
+            let messaggioAcquisto = `${currentPlayer.nome} acquistato da ${teamName.toUpperCase()} per ${price}!`;
+            if (inserimentoRiuscito) {
+                messaggioAcquisto += `\n🔥 Formazione ottimizzata con il nuovo acquisto!`;
+            } else {
+                messaggioAcquisto += `\n📋 Giocatore aggiunto alla rosa.`;
+            }
+
+            document.getElementById('buyModal').style.display = 'none';
+            renderPlayers();
+            renderTeams();
+            updateStats();
+
+            if (currentTeamView === teamName) {
+                renderTeamDetails();
+                renderField();
+
+                const moduleSelect = document.getElementById('moduleSelect');
+                if (moduleSelect) {
+                    moduleSelect.value = squadra.modulo;
+                }
+            }
+
+            saveState();
+            alert(messaggioAcquisto);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchPlayer').value = '';
+            document.getElementById('filterRole').value = '';
+            renderPlayers();
+        }
+
+        function updateStats() {
+            document.getElementById('gameType').textContent = gameSettings.modalita;
+            document.getElementById('totalPlayers').textContent = giocatoriDisponibili.length;
+            document.getElementById('totalTeams').textContent = gameSettings.participants;
+            document.getElementById('budgetDisplay').textContent = gameSettings.budget;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('participantsSetting').addEventListener('input', aggiornaCampiNomiSquadre);
+            document.getElementById('searchPlayer').addEventListener('input', renderPlayers);
+            document.getElementById('filterRole').addEventListener('change', renderPlayers);
+
+            // Auction event listeners
+            document.getElementById('shufflePlayersBtn').addEventListener('click', shufflePlayers);
+            document.getElementById('startAuctionBtn').addEventListener('click', startAuction);
+            document.getElementById('skipPlayerBtn').addEventListener('click', skipPlayer);
+
+            document.querySelectorAll('.bid-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const bidValue = parseInt(e.target.dataset.value);
+                    raiseBid(bidValue);
+                });
+            });
+
+            document.querySelectorAll('.close').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.target.closest('.modal').style.display = 'none';
+                });
+            });
+
+            window.addEventListener('click', (event) => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            if ('ontouchstart' in window) {
+                document.addEventListener('touchstart', function () { }, { passive: true });
+            }
+        }
+
+        function codificaPrezzo(prezzo) {
+            //return 'X';
+
+            const mappatura = {
+                '.': '.',
+                '0': 'Ale',
+                '1': 'Peak',
+                '2': 'Mere',
+                '3': 'Ghirlo',
+                '4': 'Roma',
+                '5': 'Inzo',
+                '6': 'Mono',
+                '7': 'Lanzo',
+                '8': 'Pashy',
+                '9': 'Tia'
+            };
+
+            const numeroStr = String(prezzo);
+            let numero_decodificato = '';
+            for (const char of numeroStr) {
+                numero_decodificato += mappatura[char] || char;
+            }
+
+            return numero_decodificato;
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+    </script>
+</body>
+
+</html>
