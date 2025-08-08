@@ -2254,7 +2254,8 @@
                             onblur="changePV(${player.id}, this.value)"
                             class="filter-input">
                     </td>  
-                    <td class="desk-only">${codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</td>
+                                        <td class="desk-only">${gameSettings.modalita == 'mantra' ? codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join('')) : `<span class="price-badge">${player.prezzo}</span>`}</td>
+
                     <td class="player-actions">
                         <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="openBuyModal(${player.id})">💰</button>
                     </td>
@@ -2518,6 +2519,7 @@
 </body>
 
 </html>
+
 
 
 
