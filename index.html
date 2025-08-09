@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Asta Mantra</title>
+    <title>Gestione Asta</title>
     <style>
         * {
             margin: 0;
@@ -41,7 +41,56 @@
             font-size: 2em;
         }
 
-        .settings-btn {
+        .room-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .room-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .role-badge.admin {
+            background: #e74c3c;
+        }
+
+        .viewer-count {
+            background: #48bb78;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .settings-btn,
+        .reset-btn,
+        .download-btn,
+        .action-btn,
+        .room-btn {
             background: linear-gradient(135deg, #48bb78, #38a169);
             color: white;
             border: none;
@@ -49,52 +98,49 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
-            margin-bottom: 15px;
+            margin: 2px;
             transition: all 0.3s ease;
         }
 
         .settings-btn:hover,
         .reset-btn:hover,
         .download-btn:hover,
-        .action-btn:hover {
+        .action-btn:hover,
+        .room-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
         }
 
         .action-btn {
             background: linear-gradient(135deg, #656ff5, #3e3ee5);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            margin: 5px;
-            transition: all 0.3s ease;
         }
 
         .download-btn {
             background: linear-gradient(135deg, #656ff5, #3e3ee5);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
         }
 
         .reset-btn {
             background: linear-gradient(135deg, #f56565, #e53e3e);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
+        }
+
+        .room-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+
+        .viewer-mode {
+            background: rgba(255, 243, 205, 0.9);
+            border: 2px solid #f6ad55;
+            border-radius: 10px;
+            padding: 10px;
             margin-bottom: 15px;
-            transition: all 0.3s ease;
+            text-align: center;
+            color: #744210;
         }
 
         .stats-grid {
@@ -453,6 +499,52 @@
             display: block;
         }
 
+        /* Room setup styles */
+        .room-setup {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .room-setup h2 {
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+
+        .room-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .room-option {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .room-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .room-option h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .room-form {
+            margin-top: 20px;
+        }
+
         /* Auction specific styles */
         .auction-header {
             display: flex;
@@ -484,8 +576,6 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-
-
 
         .timer-display {
             font-size: 3rem;
@@ -565,8 +655,6 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(255, 118, 117, 0.3);
         }
-
-
 
         @keyframes pulse {
             0% {
@@ -679,6 +767,10 @@
             .bidding-buttons {
                 gap: 20px;
             }
+
+            .room-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         /* Larger desktop styles */
@@ -692,145 +784,220 @@
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🏆 Gestione Asta Mantra</h1>
-            <button class="settings-btn" onclick="openSettingsModal()">⚙️ Impostazioni</button>
-            <button class="reset-btn" onclick="resetProgress()">🔄 Reset Dati</button>
-            <button class="download-btn" onclick="downloadCsv()">✅ Scarica Csv</button>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="gameType">Mantra</div>
-                    <div class="stat-label">Modalità</div>
+        <!-- Room Setup Screen -->
+        <div id="roomSetup" class="room-setup">
+            <h2>🏆 Gestione Asta</h2>
+            <div class="room-options">
+                <div class="room-option" onclick="showCreateRoom()">
+                    <h3>👑 Crea Nuova Asta</h3>
+                    <p>Diventa l'amministratore di una nuova asta e invita altri partecipanti</p>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-value" id="totalPlayers">0</div>
-                    <div class="stat-label">Giocatori Disponibili</div>
+                <div class="room-option" onclick="showJoinRoom()">
+                    <h3>👥 Unisciti ad Asta</h3>
+                    <p>Entra in un'asta esistente come spettatore</p>
                 </div>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-value" id="totalTeams">10</div>
-                    <div class="stat-label">Squadre</div>
+            <!-- Create Room Form -->
+            <div id="createRoomForm" class="room-form" style="display: none;">
+                <h3>Crea Nuova Asta</h3>
+                <div class="form-group">
+                    <label for="roomNameInput">Nome Asta:</label>
+                    <input type="text" id="roomNameInput" class="filter-input"
+                        placeholder="Inserisci il nome dell'asta">
                 </div>
+                <div class="form-group">
+                    <label for="adminNameInput">Il tuo Nome:</label>
+                    <input type="text" id="adminNameInput" class="filter-input" placeholder="Inserisci il tuo nome">
+                </div>
+                <button class="room-btn" onclick="createRoom()">Crea Asta</button>
+                <button class="room-btn btn-secondary" onclick="backToOptions()">Indietro</button>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-value" id="budgetDisplay">1000</div>
-                    <div class="stat-label">Budget Iniziale</div>
+            <!-- Join Room Form -->
+            <div id="joinRoomForm" class="room-form" style="display: none;">
+                <h3>Unisciti ad Asta</h3>
+                <div class="form-group">
+                    <label for="roomCodeInput">Codice Asta:</label>
+                    <input type="text" id="roomCodeInput" class="filter-input"
+                        placeholder="Inserisci il codice dell'asta">
                 </div>
+                <div class="form-group">
+                    <label for="viewerNameInput">Il tuo Nome:</label>
+                    <input type="text" id="viewerNameInput" class="filter-input" placeholder="Inserisci il tuo nome">
+                </div>
+                <button class="room-btn" onclick="joinRoom()">Unisciti</button>
+                <button class="room-btn btn-secondary" onclick="backToOptions()">Indietro</button>
             </div>
         </div>
 
-        <!-- Mobile Tabs -->
-        <div class="mobile-tabs">
-            <button class="tab-btn active" onclick="switchTab('players')">Listone</button>
-            <button class="tab-btn" onclick="switchTab('asta')">Asta</button>
-            <button class="tab-btn" onclick="switchTab('field')">Formazioni</button>
-        </div>
+        <!-- Main App (hidden initially) -->
+        <div id="mainApp" style="display: none;">
+            <div class="header">
+                <h1>🏆 Gestione Asta</h1>
 
-        <div class="main-content">
+                <!-- Room Info -->
+                <div class="room-info">
+                    <div class="room-details">
+                        <span id="roomNameDisplay">Nome Asta</span>
+                        <span id="userRole" class="role-badge">Admin</span>
+                        <span id="viewerCount" class="viewer-count">👥 1</span>
+                    </div>
+                    <div class="room-actions">
+                        <button class="room-btn" id="shareRoomBtn" onclick="shareRoom()">📋 Condividi</button>
+                        <button class="room-btn btn-danger" onclick="leaveRoom()">🚪 Esci</button>
+                    </div>
+                </div>
 
-            <div>
+                <!-- Viewer Mode Notice -->
+                <div id="viewerNotice" class="viewer-mode" style="display: none;">
+                    <strong>👁️ Modalità Spettatore</strong> - Stai visualizzando l'asta. Solo l'admin può modificare i
+                    dati.
+                </div>
 
-                <!-- Asta Section -->
-                <div id="astaTab" class="tab-content">
-                    <div class="asta-section">
-                        <div class="auction-header">
-                            <h2>🧑‍⚖️ Asta Random</h2>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span class="player-counter" id="playerCounter">0/0</span>
-                                <button id="shufflePlayersBtn" class="shuffle-btn"
-                                    title="Rimescola giocatori">🔄</button>
+                <!-- Admin Controls -->
+                <div id="adminControls">
+                    <button class="settings-btn" onclick="openSettingsModal()">⚙️ Impostazioni</button>
+                    <button class="reset-btn" onclick="resetProgress()">🔄 Reset Dati</button>
+                    <button class="download-btn" onclick="downloadCsv()">✅ Scarica Csv</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="gameType">Mantra</div>
+                        <div class="stat-label">Modalità</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalPlayers">0</div>
+                        <div class="stat-label">Giocatori Disponibili</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalTeams">10</div>
+                        <div class="stat-label">Squadre</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-value" id="budgetDisplay">1000</div>
+                        <div class="stat-label">Budget Iniziale</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Tabs -->
+            <div class="mobile-tabs">
+                <button class="tab-btn active" onclick="switchTab('players')">Listone</button>
+                <button class="tab-btn" onclick="switchTab('asta')">Asta</button>
+                <button class="tab-btn" onclick="switchTab('field')">Formazioni</button>
+            </div>
+
+            <div class="main-content">
+
+                <div>
+
+                    <!-- Asta Section -->
+                    <div id="astaTab" class="tab-content">
+                        <div class="asta-section">
+                            <div class="auction-header">
+                                <h2>🧑‍⚖️ Asta Random</h2>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="player-counter" id="playerCounter">0/0</span>
+                                    <button id="shufflePlayersBtn" class="shuffle-btn"
+                                        title="Rimescola giocatori">🔄</button>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="auction-controls">
-                            <button id="startAuctionBtn" class="action-btn">🎲 Avvia Asta</button>
-                            <button id="skipPlayerBtn" class="action-btn">⏭️ Salta Giocatore</button>
-                        </div>
-
-                        <div id="currentAuctionInfo" class="auction-info" style="display: none;">
-                            <div class="player-card" id="auctionPlayerCard">
-                                <div id="playerInfoAsta"
-                                    style="display: flex; align-items:center; justify-content:center"></div>
-                                <div class="price-display">💰 <span id="currentPrice">0</span></div>
-                                <div id="timerDisplay" class="timer-display"></div>
+                            <div class="auction-controls" id="auctionControlsDiv">
+                                <button id="startAuctionBtn" class="action-btn">🎲 Avvia Asta</button>
+                                <button id="skipPlayerBtn" class="action-btn">⏭️ Salta Giocatore</button>
                             </div>
 
-                            <div id="biddingControls" class="bidding-controls" style="display: none;">
-                                <div class="bidding-buttons">
-                                    <button class="bid-btn" data-value="1">+1</button>
-                                    <button class="bid-btn" data-value="5">+5</button>
-                                    <button class="bid-btn" data-value="10">+10</button>
+                            <div id="currentAuctionInfo" class="auction-info" style="display: none;">
+                                <div class="player-card" id="auctionPlayerCard">
+                                    <div id="playerInfoAsta"
+                                        style="display: flex; align-items:center; justify-content:center"></div>
+                                    <div class="price-display">💰 <span id="currentPrice">0</span></div>
+                                    <div id="timerDisplay" class="timer-display"></div>
+                                </div>
+
+                                <div id="biddingControls" class="bidding-controls" style="display: none;">
+                                    <div class="bidding-buttons">
+                                        <button class="bid-btn" data-value="1">+1</button>
+                                        <button class="bid-btn" data-value="5">+5</button>
+                                        <button class="bid-btn" data-value="10">+10</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Players Section -->
+                    <div id="playersTab" class="tab-content active">
+                        <div class="players-section">
+                            <h2>🎯 Listone</h2>
+
+                            <div class="filters">
+                                <input type="text" id="searchPlayer" class="filter-input"
+                                    placeholder="🔍 Cerca giocatore...">
+                                <select id="filterRole" class="filter-select">
+                                </select>
+                                <button class="btn btn-secondary" id="reset-filtri" onclick="resetFilters()">Reset
+                                    Filtri</button>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="players-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Sq.</th>
+                                            <th>Ruolo</th>
+                                            <th class="desk-only">FM</th>
+                                            <th class="desk-only">PV</th>
+                                            <th class="desk-only">€</th>
+                                            <th>Compra</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="playersTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </div>
 
-                <!-- Players Section -->
-                <div id="playersTab" class="tab-content active">
-                    <div class="players-section">
-                        <h2>🎯 Listone</h2>
-
-                        <div class="filters">
-                            <input type="text" id="searchPlayer" class="filter-input"
-                                placeholder="🔍 Cerca giocatore...">
-                            <select id="filterRole" class="filter-select">
+                <!-- Field Section -->
+                <div id="fieldTab" class="tab-content">
+                    <div class="field-section">
+                        <h3>⚽ Campo di Gioco</h3>
+                        <div id="fieldTeamSelect">
+                            <select id="fieldTeamSelectDropdown" class="filter-select" onchange="changeFieldTeam()">
+                                <option value="">Seleziona squadra</option>
                             </select>
-                            <button class="btn btn-secondary" onclick="resetFilters()">Reset Filtri</button>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <select id="moduleSelect" class="filter-select" onchange="changeModule()">
+                            </select>
+                        </div>
+                        <div class="field-container" style="margin-bottom: 15px; display:none">
+                            <div id="fieldFormation" class="field-formation"></div>
                         </div>
 
-                        <div class="table-container">
-                            <table class="players-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Sq.</th>
-                                        <th>Ruolo</th>
-                                        <th class="desk-only">FM</th>
-                                        <th class="desk-only">PV</th>
-                                        <th class="desk-only">€</th>
-                                        <th>Compra</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="playersTableBody">
-                                </tbody>
-                            </table>
+                        <div id="selectedTeamInfo" style="display: none;">
+                            <div class="team-card">
+                                <div id="selectedTeamDetails"></div>
+                                <h4>📋 Rosa Completa</h4>
+                                <div id="selectedTeamRoster"></div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-
-            </div>
-
-            <!-- Field Section -->
-            <div id="fieldTab" class="tab-content">
-                <div class="field-section">
-                    <h3>⚽ Campo di Gioco</h3>
-                    <div id="fieldTeamSelect">
-                        <select id="fieldTeamSelectDropdown" class="filter-select" onchange="changeFieldTeam()">
-                            <option value="">Seleziona squadra</option>
-                        </select>
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <select id="moduleSelect" class="filter-select" onchange="changeModule()">
-                        </select>
-                    </div>
-                    <div class="field-container" style="margin-bottom: 15px; display:none">
-                        <div id="fieldFormation" class="field-formation"></div>
-                    </div>
-
-                    <div id="selectedTeamInfo" style="display: none;">
-                        <div class="team-card">
-                            <div id="selectedTeamDetails"></div>
-                            <h4>📋 Rosa Completa</h4>
-                            <div id="selectedTeamRoster"></div>
+                        <div id="teamsOverview">
+                            <div id="teamsContainer"></div>
                         </div>
-                    </div>
-
-                    <div id="teamsOverview">
-                        <div id="teamsContainer"></div>
                     </div>
                 </div>
             </div>
@@ -913,8 +1080,15 @@
 
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script>
+        // Room management variables
+        let currentRoom = null;
+        let isAdmin = false;
+        let currentUser = null;
+        let roomData = null;
+        let syncInterval = null;
 
         const CACHE_KEY = 'astaGestioneState';
+        const ROOMS_KEY = 'astaRooms';
 
         let gameSettings = {
             modalita: 'mantra',
@@ -1004,39 +1178,315 @@
         let auctionTimer;
         let timerSeconds = 10;
 
-        function saveState() {
-            const state = {
-                gameSettings: gameSettings,
-                squadre: squadre,
-                giocatoriDisponibili: giocatoriDisponibili,
-                rawPlayers: rawPlayers,
-            };
-            localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-            console.log('Stato salvato nella cache locale.');
+        // Room Management Functions
+        function generateRoomCode() {
+            return Math.random().toString(36).substr(2, 8).toUpperCase();
         }
 
-        function loadState() {
-            const cachedState = localStorage.getItem(CACHE_KEY);
-            if (cachedState) {
-                const state = JSON.parse(cachedState);
-                gameSettings = state.gameSettings;
-                squadre = state.squadre;
-                giocatoriDisponibili = state.giocatoriDisponibili;
-                rawPlayers = state.rawPlayers;
+        function showCreateRoom() {
+            document.getElementById('createRoomForm').style.display = 'block';
+            document.getElementById('joinRoomForm').style.display = 'none';
+            document.querySelector('.room-options').style.display = 'none';
+        }
 
-                populateModulo();
+        function showJoinRoom() {
+            document.getElementById('joinRoomForm').style.display = 'block';
+            document.getElementById('createRoomForm').style.display = 'none';
+            document.querySelector('.room-options').style.display = 'none';
+        }
+
+        function backToOptions() {
+            document.getElementById('createRoomForm').style.display = 'none';
+            document.getElementById('joinRoomForm').style.display = 'none';
+            document.querySelector('.room-options').style.display = 'grid';
+        }
+
+        function createRoom() {
+            const roomName = document.getElementById('roomNameInput').value.trim();
+            const adminName = document.getElementById('adminNameInput').value.trim();
+
+            if (!roomName || !adminName) {
+                alert('Inserisci nome asta e il tuo nome!');
+                return;
+            }
+
+            const roomCode = generateRoomCode();
+            currentRoom = roomCode;
+            isAdmin = true;
+            currentUser = adminName;
+
+            // Initialize room data
+            roomData = {
+                roomCode: roomCode,
+                roomName: roomName,
+                admin: adminName,
+                viewers: [adminName],
+                gameData: {
+                    gameSettings: gameSettings,
+                    squadre: {},
+                    giocatoriDisponibili: [],
+                    rawPlayers: {},
+                    availablePlayers: [],
+                    auctionedPlayers: [],
+                    currentAuction: null,
+                    currentPrice: 1,
+                    timerSeconds: 10
+                },
+                lastUpdate: Date.now()
+            };
+
+            saveRoomData();
+            enterMainApp();
+
+            // Initialize with demo data
+            loadPlayersFromExcel().then(() => {
+                initializeTeams();
                 setupEventListeners();
                 populateTeamSelect();
                 populateFiltroRuoli();
                 updateStats();
                 renderPlayers();
                 renderTeams();
-                return true;
-            }
-            return false;
+                saveRoomData();
+            });
         }
 
+        function joinRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            const viewerName = document.getElementById('viewerNameInput').value.trim();
 
+            if (!roomCode || !viewerName) {
+                alert('Inserisci codice asta e il tuo nome!');
+                return;
+            }
+
+            const rooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '{}');
+
+            if (!rooms[roomCode]) {
+                alert('Asta non trovata! Verifica il codice.');
+                return;
+            }
+
+            currentRoom = roomCode;
+            isAdmin = false;
+            currentUser = viewerName;
+            roomData = rooms[roomCode];
+
+            // Add viewer to room
+            if (!roomData.viewers.includes(viewerName)) {
+                roomData.viewers.push(viewerName);
+                saveRoomData();
+            }
+
+            loadRoomData();
+            enterMainApp();
+            startSyncInterval();
+        }
+
+        function enterMainApp() {
+            document.getElementById('roomSetup').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+
+            updateRoomUI();
+            applyUserPermissions();
+        }
+
+        function updateRoomUI() {
+            document.getElementById('roomNameDisplay').textContent = roomData.roomName;
+            document.getElementById('userRole').textContent = isAdmin ? 'Admin' : 'Viewer';
+            document.getElementById('userRole').className = `role-badge ${isAdmin ? 'admin' : ''}`;
+            document.getElementById('viewerCount').textContent = `👥 ${roomData.viewers.length}`;
+        }
+
+        function applyUserPermissions() {
+            const viewerNotice = document.getElementById('viewerNotice');
+            const adminControls = document.getElementById('adminControls');
+
+            if (isAdmin) {
+                viewerNotice.style.display = 'none';
+                adminControls.style.display = 'block';
+            } else {
+                viewerNotice.style.display = 'block';
+                adminControls.style.display = 'none';
+
+                // Disable all interactive elements for viewers
+                const interactiveElements = document.querySelectorAll('button, input');
+                interactiveElements.forEach(el => {
+                    if (!el.closest('#roomSetup') && !el.closest('.room-btn') && !el.closest('#searchPlayer')
+                        && !el.closest('#reset-filtri') && !el.closest('.tab-btn')) {
+                        el.classList.add('disabled');
+                        if (el.tagName === 'BUTTON') {
+                            el.onclick = () => {
+                                alert('Solo l\'admin può modificare i dati dell\'asta.');
+                                return false;
+                            };
+                        }
+                    }
+                });
+
+                // Hide certain admin-only elements
+                const auctionControls = document.getElementById('auctionControlsDiv');
+                if (auctionControls) {
+                    auctionControls.style.display = 'none';
+                }
+            }
+        }
+
+        function saveRoomData() {
+            if (!currentRoom || !isAdmin) return;
+
+            const rooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '{}');
+
+            // Update game data from current state
+            roomData.gameData = {
+                gameSettings: gameSettings,
+                squadre: squadre,
+                giocatoriDisponibili: giocatoriDisponibili,
+                rawPlayers: rawPlayers,
+                availablePlayers: availablePlayers,
+                auctionedPlayers: auctionedPlayers,
+                currentAuction: currentAuction,
+                currentPrice: currentPrice,
+                timerSeconds: timerSeconds
+            };
+
+            roomData.lastUpdate = Date.now();
+            rooms[currentRoom] = roomData;
+            localStorage.setItem(ROOMS_KEY, JSON.stringify(rooms));
+        }
+
+        function loadRoomData() {
+            if (!roomData) return;
+
+            const data = roomData.gameData;
+            gameSettings = data.gameSettings;
+            squadre = data.squadre;
+            giocatoriDisponibili = data.giocatoriDisponibili;
+            rawPlayers = data.rawPlayers;
+            availablePlayers = data.availablePlayers || [];
+            auctionedPlayers = data.auctionedPlayers || [];
+            currentAuction = data.currentAuction;
+            currentPrice = data.currentPrice || 1;
+            timerSeconds = data.timerSeconds || 10;
+
+            // Update UI
+            populateModulo();
+            setupEventListeners();
+            populateTeamSelect();
+            populateFiltroRuoli();
+            updateStats();
+            renderPlayers();
+            renderTeams();
+            renderField();
+
+            // Update auction UI if needed
+            if (currentAuction) {
+                updateAuctionUI();
+            }
+
+            updatePlayerCounter();
+        }
+
+        function startSyncInterval() {
+            if (syncInterval) clearInterval(syncInterval);
+
+            syncInterval = setInterval(() => {
+                if (!isAdmin && currentRoom) {
+                    const rooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '{}');
+                    if (rooms[currentRoom] && rooms[currentRoom].lastUpdate > roomData.lastUpdate) {
+                        roomData = rooms[currentRoom];
+                        loadRoomData();
+                        updateRoomUI();
+                    }
+                }
+            }, 500);
+        }
+
+        function shareRoom() {
+            const shareText = `🏆 Unisciti alla mia asta "${roomData.roomName}"!\n\nCodice: ${currentRoom}\n\nCopia questo codice e vai su ${window.location.href}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Asta Fantacalcio',
+                    text: shareText
+                });
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('Codice copiato negli appunti!');
+                });
+            } else {
+                alert(`Condividi questo codice con gli altri:\n\n${currentRoom}`);
+            }
+        }
+
+        function leaveRoom() {
+            if (confirm('Sei sicuro di voler uscire dall\'asta?')) {
+                if (syncInterval) clearInterval(syncInterval);
+
+                if (currentRoom && currentUser) {
+                    // Remove user from viewers list
+                    const rooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '{}');
+                    if (rooms[currentRoom]) {
+                        rooms[currentRoom].viewers = rooms[currentRoom].viewers.filter(v => v !== currentUser);
+                        localStorage.setItem(ROOMS_KEY, JSON.stringify(rooms));
+                    }
+                }
+
+                // Reset variables
+                currentRoom = null;
+                isAdmin = false;
+                currentUser = null;
+                roomData = null;
+
+                // Show room setup again
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('roomSetup').style.display = 'block';
+                backToOptions();
+            }
+        }
+
+        function updateAuctionUI() {
+            if (!currentAuction) return;
+
+            const playerInfo = document.getElementById('playerInfoAsta');
+            document.getElementById('currentPrice').innerText = currentPrice;
+
+            playerInfo.innerHTML = `
+                <div style="width: 30%;"> 
+                    <img style="width: 100%; border-radius: 8px;" 
+                         src="https://content.fantacalcio.it/web/campioncini/card/${currentAuction.nome.replace(' ', '-').replace('.', '').toUpperCase()}.png" onerror="this.style.display='none'"/> 
+                </div>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 70%; margin-left: 10px;">
+                    <h3>${currentAuction.nome}</h3>
+                    <br>
+                    <p><strong>Squadra:</strong> ${currentAuction.squadra}</p>
+                    <p><strong>Ruolo:</strong> ${gameSettings.modalita == 'mantra' ? currentAuction.ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${currentAuction.ruoloClassic}</span>`}</p>
+                    <p><strong>FM:</strong> ${parseFloat(currentAuction.fm.toFixed(1))}</p>
+                    <p><strong>PV:</strong> ${parseFloat(currentAuction.pv.toFixed(1))}</p>
+                    <p><strong>Prezzo Consigliato:</strong> ${codificaPrezzo(currentAuction.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</p>
+                </div>`;
+
+            const auctionInfo = document.getElementById('currentAuctionInfo');
+            const playerCard = document.getElementById('auctionPlayerCard');
+            auctionInfo.style.display = 'block';
+            playerCard.classList.add('auction-active');
+
+            if (isAdmin) {
+                document.getElementById('biddingControls').style.display = 'block';
+            }
+        }
+
+        // Modified original functions to work with room system
+        function saveState() {
+            if (isAdmin) {
+                saveRoomData();
+            }
+        }
+
+        function loadState() {
+            // This is now handled by room system
+            return false;
+        }
 
         function updatePlayerCounter() {
             const total = availablePlayers.length + auctionedPlayers.length;
@@ -1044,14 +1494,25 @@
         }
 
         function shufflePlayers() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può rimescolare i giocatori.');
+                return;
+            }
+
             const allPlayers = [...availablePlayers, ...auctionedPlayers];
             availablePlayers = allPlayers.sort(() => Math.random() - 0.5);
             auctionedPlayers = [];
             updatePlayerCounter();
+            saveState();
             alert('Giocatori rimescolati!');
         }
 
         function startAuction() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può avviare l\'asta.');
+                return;
+            }
+
             // Initialize available players if needed
             if (availablePlayers.length === 0 && auctionedPlayers.length === 0) {
                 availablePlayers = [...giocatoriDisponibili];
@@ -1072,37 +1533,15 @@
             currentPrice = 1;
             timerSeconds = 10;
 
-            // Update UI
-            const playerInfo = document.getElementById('playerInfoAsta');
-            document.getElementById('currentPrice').innerText = currentPrice;
-
-            playerInfo.innerHTML = `
-                <div style="width: 30%;"> 
-                    <img style="width: 100%; border-radius: 8px;" 
-                         src="https://content.fantacalcio.it/web/campioncini/card/${player.nome.replace(' ', '-').replace('.', '').toUpperCase()}.png" onerror="this.style.display='none'"/> 
-                </div>
-                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 70%; margin-left: 10px;">
-                    <h3>${player.nome}</h3>
-                    <br>
-                    <p><strong>Squadra:</strong> ${player.squadra}</p>
-                    <p><strong>Ruolo:</strong> ${gameSettings.modalita == 'mantra' ? player.ruolo.split('/').map(r => `<span class="role-badge">${r}</span>`).join('') : `<span class="role-badge">${player.ruoloClassic}</span>`}</p>
-                    <p><strong>FM:</strong> ${parseFloat(player.fm.toFixed(1))}</p>
-                    <p><strong>PV:</strong> ${parseFloat(player.pv.toFixed(1))}</p>
-                    <p><strong>Prezzo Consigliato:</strong> ${codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join(''))}</p>
-                </div>`
-
-            // Show auction info and add active class
-            const auctionInfo = document.getElementById('currentAuctionInfo');
-            const playerCard = document.getElementById('auctionPlayerCard');
-            auctionInfo.style.display = 'block';
-            playerCard.classList.add('auction-active');
-            document.getElementById('biddingControls').style.display = 'block';
-
+            updateAuctionUI();
             updatePlayerCounter();
             startTimer();
+            saveState();
         }
 
         function startTimer() {
+            if (!isAdmin) return;
+
             const timerDisplay = document.getElementById('timerDisplay');
             timerDisplay.innerText = timerSeconds;
 
@@ -1121,20 +1560,25 @@
                     clearInterval(auctionTimer);
                     endAuction();
                 }
+
+                saveState();
             }, 1000);
         }
 
         function raiseBid(value) {
-            if (!currentAuction) return;
+            if (!currentAuction || !isAdmin) return;
 
             currentPrice += value;
             document.getElementById('currentPrice').innerText = currentPrice;
             clearInterval(auctionTimer);
             timerSeconds = 10;
             startTimer();
+            saveState();
         }
 
         function endAuction() {
+            if (!isAdmin) return;
+
             const auctionInfo = document.getElementById('currentAuctionInfo');
             const playerCard = document.getElementById('auctionPlayerCard');
             const biddingControls = document.getElementById('biddingControls');
@@ -1149,10 +1593,11 @@
             // Open buy modal with suggested price
             openBuyModal(currentAuction.id, currentPrice);
             currentAuction = null;
+            saveState();
         }
 
         function skipPlayer() {
-            if (!currentAuction) {
+            if (!currentAuction || !isAdmin) {
                 alert('Nessun giocatore in asta da saltare.');
                 return;
             }
@@ -1169,12 +1614,14 @@
             // Put player back in available list
             availablePlayers.push(currentAuction);
             currentAuction = null;
+            saveState();
 
             // Automatically start next auction
             setTimeout(() => startAuction(), 500);
         }
 
         function downloadCsv() {
+
             let csv = "$,$,$\n";
 
             for (const nome in squadre) {
@@ -1200,8 +1647,19 @@
         }
 
         function resetProgress() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può resettare i dati.');
+                return;
+            }
+
             if (confirm("Sei sicuro di voler resettare tutti i dati dell'asta? Questa azione è irreversibile.")) {
-                localStorage.removeItem(CACHE_KEY);
+                // Clear room data
+                if (currentRoom) {
+                    const rooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '{}');
+                    delete rooms[currentRoom];
+                    localStorage.setItem(ROOMS_KEY, JSON.stringify(rooms));
+                }
+
                 alert("Dati resettati con successo. La pagina verrà ricaricata.");
                 location.reload();
             }
@@ -1355,6 +1813,11 @@
         }
 
         function openSettingsModal() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può modificare le impostazioni.');
+                return;
+            }
+
             aggiornaCampiNomiSquadre();
             changeModSettings();
             document.getElementById('modalitaSetting').value = gameSettings.modalita;
@@ -1372,6 +1835,11 @@
         }
 
         function saveSettings() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può salvare le impostazioni.');
+                return;
+            }
+
             const newBudget = parseInt(document.getElementById('budgetSetting').value);
             const newParticipants = parseInt(document.getElementById('participantsSetting').value);
 
@@ -1436,77 +1904,51 @@
             }
         }
 
-        function riposizionaGiocatoriInNuovoModulo(squadra, nuovoModulo) {
-            const nuovaFormazione = {};
-            const slotsNuovoModulo = getFormationSlots(nuovoModulo);
-            const giocatoriAssegnatiId = new Set();
+        function scegliMigliorModulo(squadra, moduliDisponibili) {
+            const rosaOrdinata = [...squadra.rosa].sort((a, b) => b['Fm Attesa'] - a['Fm Attesa']);
 
-            // Ordina tutti i giocatori per Fm Attesa decrescente
-            const tuttiGiocatoriRosa = [...squadra.rosa].sort((a, b) => b['Fm Attesa'] - a['Fm Attesa']);
+            let migliorModulo = null;
+            let migliorFormazione = null;
+            let maxAssegnati = -1;
+            let maxFmTotale = -1;
 
-            // Prima fase: assegna i giocatori migliori a ogni slot
-            slotsNuovoModulo.forEach(slot => {
-                let migliorGiocatore = null;
-                let migliorFm = -1;
+            for (const modulo of Object.keys(moduliDisponibili)) {
+                const slotsNuovoModulo = getFormationSlots(modulo); // mantiene ordine slot
+                const formazioneTemp = {};
+                const assegnatiId = new Set();
+                let fmTotale = 0;
+                let numAssegnati = 0;
 
-                // Cerca il miglior giocatore disponibile per questo slot
-                for (const giocatore of tuttiGiocatoriRosa) {
-                    // Verifica che il giocatore non sia già assegnato e sia compatibile
-                    if (!giocatoriAssegnatiId.has(giocatore.Id) &&
-                        giocatoreCompatibileConPosizione(giocatore, slot.position)) {
-
-                        if (giocatore['Fm Attesa'] > migliorFm) {
-                            migliorGiocatore = giocatore;
-                            migliorFm = giocatore['Fm Attesa'];
-                        }
-                    }
-                }
-
-                // Assegna il miglior giocatore trovato
-                if (migliorGiocatore) {
-                    nuovaFormazione[slot.slotId] = migliorGiocatore;
-                    giocatoriAssegnatiId.add(migliorGiocatore.Id);
-                }
-            });
-
-            // Seconda fase: ottimizzazione con scambi per migliorare la formazione complessiva
-            let miglioramentoTrovato = true;
-            while (miglioramentoTrovato) {
-                miglioramentoTrovato = false;
-
-                // Per ogni slot della formazione
                 for (const slot of slotsNuovoModulo) {
-                    const giocatoreCorrente = nuovaFormazione[slot.slotId];
-                    if (!giocatoreCorrente) continue;
+                    const candidato = rosaOrdinata.find(
+                        g => !assegnatiId.has(g.Id) && giocatoreCompatibileConPosizione(g, slot.position)
+                    );
 
-                    // Cerca un giocatore migliore non assegnato
-                    for (const candidato of tuttiGiocatoriRosa) {
-                        if (!giocatoriAssegnatiId.has(candidato.Id) &&
-                            giocatoreCompatibileConPosizione(candidato, slot.position) &&
-                            candidato['Fm Attesa'] > giocatoreCorrente['Fm Attesa']) {
-
-                            // Effettua lo scambio
-                            giocatoriAssegnatiId.delete(giocatoreCorrente.Id);
-                            giocatoriAssegnatiId.add(candidato.Id);
-                            nuovaFormazione[slot.slotId] = candidato;
-
-                            miglioramentoTrovato = true;
-                            break;
-                        }
+                    if (candidato) {
+                        formazioneTemp[slot.slotId] = candidato;
+                        assegnatiId.add(candidato.Id);
+                        fmTotale += candidato['Fm Attesa'];
+                        numAssegnati++;
                     }
+                }
 
-                    if (miglioramentoTrovato) break;
+                // Scelta del modulo migliore
+                if (
+                    numAssegnati > maxAssegnati ||
+                    (numAssegnati === maxAssegnati && fmTotale > maxFmTotale)
+                ) {
+                    migliorModulo = modulo;
+                    migliorFormazione = formazioneTemp;
+                    maxAssegnati = numAssegnati;
+                    maxFmTotale = fmTotale;
                 }
             }
 
-            // Calcola i giocatori rimasti in panchina
-            const giocatoriInPanchina = tuttiGiocatoriRosa.filter(player =>
-                !giocatoriAssegnatiId.has(player.Id)
-            );
-
             return {
-                formazione: nuovaFormazione,
-                giocatoriRimossi: giocatoriInPanchina
+                modulo: migliorModulo,
+                formazione: migliorFormazione,
+                numAssegnati: maxAssegnati,
+                sommaFm: maxFmTotale
             };
         }
 
@@ -1517,13 +1959,18 @@
                 squadra.rosa.push(nuovoGiocatore);
             }
 
-            const risultatoRiposizionamento = riposizionaGiocatoriInNuovoModulo(squadra, squadra.modulo);
-            squadra.formazione = risultatoRiposizionamento.formazione;
+            const migliorModulo = scegliMigliorModulo(squadra, moduliFantacalcio[gameSettings.modalita]);
 
-            console.log(`${nuovoGiocatore.Nome} acquistato da ${nomeSquadra.toUpperCase()} e la formazione è stata ottimizzata.`);
+            squadra.modulo = migliorModulo.modulo;
+            squadra.formazione = migliorModulo.formazione;
+
+            console.log(
+                `${nuovoGiocatore.Nome} acquistato da ${nomeSquadra.toUpperCase()}, ` +
+                `formazione ricalcolata con modulo ${migliorModulo.modulo} (${migliorModulo.numAssegnati} giocatori, FM ${migliorModulo.sommaFm.toFixed(2)}).`
+            );
 
             const idsInFormazione = Object.values(squadra.formazione)
-                .filter(g => g)
+                .filter(Boolean)
                 .map(g => g.Id);
             const idsUnici = new Set(idsInFormazione);
 
@@ -1597,31 +2044,53 @@
 
             } catch (error) {
                 console.error('Errore nel caricamento del file Excel:', error);
-                alert('Errore nel caricamento del file Excel: ' + error.message);
-                return false;
+
+                // Fallback to demo data for testing
+                rawPlayers = [
+                    { id: 1, nome: "Haaland", squadra: "MCI", ruolo: "Pc", ruoloClassic: "A", fm: 8.5, pv: 35 },
+                    { id: 2, nome: "Mbappe", squadra: "PSG", ruolo: "A;W", ruoloClassic: "A", fm: 8.2, pv: 32 },
+                    { id: 3, nome: "De Bruyne", squadra: "MCI", ruolo: "C;T", ruoloClassic: "C", fm: 7.8, pv: 30 }
+                ];
+
+                valoreMedioRuoli = calcolaValoreMedioRuoli();
+
+                giocatoriDisponibili = rawPlayers.map(player => {
+                    let ruolo = '';
+                    let prezzo = 0;
+                    if (gameSettings.modalita == 'mantra') {
+                        const ruoli = player.ruolo.split(';').map(r => r.trim());
+                        const prezzi = ruoli.map(ruolo => calcoloPrezzoGiocatore(player, ruolo));
+                        prezzo = prezzi.join('.')
+                        ruolo = ruoli.join('/')
+                    } else {
+                        prezzo = calcoloPrezzoGiocatore(player, player.ruoloClassic);
+                        ruolo = player.ruolo;
+                    }
+                    return {
+                        id: player.id,
+                        nome: player.nome,
+                        squadra: player.squadra,
+                        ruolo: ruolo,
+                        ruoloClassic: player.ruoloClassic,
+                        fm: player.fm,
+                        prezzo: prezzo,
+                        pv: player.pv,
+                    };
+                });
+
+                renderPlayers();
+                updateStats();
+
+                return true;
             }
         }
 
         function initializeApp() {
-            if (loadState()) return
-            loadPlayersFromExcel();
+            // Show room setup instead of loading state
             populateModulo();
-            initializeTeams();
-            setupEventListeners();
-            populateTeamSelect();
-            populateFiltroRuoli();
-            updateStats();
-            renderPlayers();
-            renderTeams();
-
-
         }
 
         function changeModule() {
-            if (!currentTeamView) {
-                alert('Seleziona prima una squadra per cambiare il modulo!');
-                return;
-            }
 
             const newModule = document.getElementById('moduleSelect').value;
             const squadra = squadre[currentTeamView];
@@ -1645,6 +2114,7 @@
 
             renderTeamDetails();
             renderField();
+            saveState();
         }
 
         function getFormationSlots(modulo) {
@@ -1736,14 +2206,14 @@
             try {
                 const fmAmbitaValue = getFmAmbita();
                 const budgetAsta = gameSettings.budget;
-                const valoreRuolo = valoreMedioRuoli[ruolo];
+                const valoreRuolo = valoreMedioRuoli[ruolo] || 6.0;
                 const budgetIncrementale = budgetAsta * 0.7;
                 const prezzoMedioScheletro = (budgetAsta * 0.25) / 11;
                 let valore_modulo = 0;
                 Object.keys(squadre).forEach(teamId => {
                     valore_modulo += calcolaValoreModulo(moduliFantacalcio[gameSettings.modalita][squadre[teamId].modulo]);
                 });
-                valoreModulo = valore_modulo / gameSettings.participants
+                valoreModulo = valore_modulo / gameSettings.participants || 70;
 
                 const pvFactor = 0.05 + (player.pv / 38) * 1.1;
                 let prezzo = ((player.fm - valoreRuolo) / (fmAmbitaValue - valoreModulo)) * budgetIncrementale;
@@ -1762,7 +2232,6 @@
         }
 
         function recalculatePrices() {
-
             giocatoriDisponibili.forEach(player => {
                 let ruolo = '';
                 let prezzo = 0;
@@ -1872,6 +2341,7 @@
                 selectedTeamInfo.style.display = 'none';
                 teamsOverview.style.display = 'block';
                 renderTeams();
+                renderField();
             }
         }
 
@@ -1942,7 +2412,7 @@
                         </div>
                         <div>
                             <span class="price-badge">${p.Prezzo}</span>
-                            <button class="btn btn-danger" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;" onclick="removePlayer(${p.Id})">✕</button>
+                            ${isAdmin ? `<button class="btn btn-danger" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;" onclick="removePlayer(${p.Id})">✕</button>` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -1986,7 +2456,7 @@
                         playerSlot.classList.add('filled');
                         playerSlot.innerHTML = `
                             ${assignedPlayer.Nome}
-                            <button class="player-remove" onclick="removeFromField('${slotId}')">&times;</button>
+                            ${`<button class="player-remove" onclick="removeFromField('${slotId}')">&times;</button>`}
                         `;
                     } else {
                         playerSlot.textContent = position;
@@ -2003,43 +2473,43 @@
         function getFormationLines(modulo) {
             let classicFormations = {
                 "3-4-3": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D"],
                     ["C", "C", "C", "C"],
                     ["A", "A", "A"]
                 ],
                 "3-5-2": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D"],
                     ["C", "C", "C", "C", "C"],
                     ["A", "A"]
                 ],
                 "4-3-3": [
-                    ["Por"],
-                    ["D", "D", "D", , "D"],
+                    ["P"],
+                    ["D", "D", "D", "D"],
                     ["C", "C", "C"],
                     ["A", "A", "A"]
                 ],
                 "4-4-2": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D", "D"],
                     ["C", "C", "C", "C"],
                     ["A", "A"]
                 ],
                 "4-5-1": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D", "D"],
                     ["C", "C", "C", "C", "C"],
                     ["A"]
                 ],
                 "5-3-2": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D", "D", "D"],
                     ["C", "C", "C"],
                     ["A", "A"]
                 ],
                 "5-4-1": [
-                    ["Por"],
+                    ["P"],
                     ["D", "D", "D", "D", "D"],
                     ["C", "C", "C", "C"],
                     ["A"]
@@ -2154,6 +2624,7 @@
                 squadra.formazione[slotId] = selectedPlayer;
                 renderTeamDetails();
                 renderField();
+                saveState();
             } else if (playerName !== null && playerName.trim() !== '') {
                 alert('Selezione non valida. Inserisci un numero valido.');
             }
@@ -2170,10 +2641,11 @@
             }
             renderTeamDetails();
             renderField();
+            saveState();
         }
 
         function removePlayer(playerId) {
-            if (!currentTeamView) return;
+            if (!currentTeamView || !isAdmin) return;
 
             const squadra = squadre[currentTeamView];
             const playerIndex = squadra.rosa.findIndex(p => p.Id === playerId);
@@ -2214,6 +2686,7 @@
             renderField();
             updateStats();
 
+
             alert(`${player.Nome} rimosso dalla rosa di ${currentTeamView.toUpperCase()}`);
         }
 
@@ -2243,7 +2716,7 @@
                             max="10" 
                             value="${parseFloat(player.fm.toFixed(1))}" 
                             onblur="changeFM(${player.id}, this.value)"
-                            class="filter-input">
+                            class="filter-input ${!isAdmin ? 'disabled' : ''}">
                     </td>
                     <td class="desk-only">
                         <input type="number" 
@@ -2252,24 +2725,27 @@
                             max="38" 
                             value="${parseFloat(player.pv.toFixed(1))}" 
                             onblur="changePV(${player.id}, this.value)"
-                            class="filter-input">
+                            class="filter-input ${!isAdmin ? 'disabled' : ''}">
                     </td>  
-                                        <td class="desk-only">${gameSettings.modalita == 'mantra' ? codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join('')) : `<span class="price-badge">${player.prezzo}</span>`}</td>
-
+                    <td class="desk-only">${gameSettings.modalita == 'mantra' ? codificaPrezzo(player.prezzo.split('.').map(p => `<span class="price-badge">${p}</span>`).join('')) : `<span class="price-badge">${player.prezzo}</span>`}</td>
                     <td class="player-actions">
-                        <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="openBuyModal(${player.id})">💰</button>
+                        <button class="btn ${!isAdmin ? 'disabled' : ''}" style="padding: 6px 12px; font-size: 12px;" onclick="openBuyModal(${player.id})">💰</button>
                     </td>
                 `;
             });
         }
 
         function changeFM(playerId, newValue) {
+            if (!isAdmin) return;
+
             let currentPlayer = giocatoriDisponibili.find(p => p.id === playerId)
             currentPlayer.fm = parseFloat(newValue);
             recalculatePrices()
         }
 
         function changePV(playerId, newValue) {
+            if (!isAdmin) return;
+
             let currentPlayer = giocatoriDisponibili.find(p => p.id === playerId)
             currentPlayer.pv = parseFloat(newValue);
             recalculatePrices()
@@ -2335,6 +2811,11 @@
         }
 
         function openBuyModal(playerId, suggestedPrice = null) {
+            if (!isAdmin) {
+                alert('Solo l\'admin può acquistare giocatori.');
+                return;
+            }
+
             currentPlayer = giocatoriDisponibili.find(p => p.id === playerId);
             if (!currentPlayer) return;
 
@@ -2377,6 +2858,11 @@
         }
 
         function confirmPurchase() {
+            if (!isAdmin) {
+                alert('Solo l\'admin può confermare acquisti.');
+                return;
+            }
+
             const teamName = document.getElementById('teamSelect').value;
             const price = parseInt(document.getElementById('bidPrice').value);
 
@@ -2485,20 +2971,20 @@
         }
 
         function codificaPrezzo(prezzo) {
-            return prezzo;
+            //return prezzo;
 
             const mappatura = {
                 '.': '.',
-                '0': 'Ale',
-                '1': 'Peak',
-                '2': 'Mere',
-                '3': 'Ghirlo',
-                '4': 'Roma',
-                '5': 'Inzo',
-                '6': 'Mono',
-                '7': 'Lanzo',
-                '8': 'Pashy',
-                '9': 'Tia'
+                '0': 'C',
+                '1': 'P',
+                '2': 'M',
+                '3': 'G',
+                '4': 'R',
+                '5': 'I',
+                '6': 'M',
+                '7': 'L',
+                '8': 'S',
+                '9': 'T'
             };
 
             const numeroStr = String(prezzo);
@@ -2519,7 +3005,3 @@
 </body>
 
 </html>
-
-
-
-
