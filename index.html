@@ -1200,8 +1200,42 @@
             document.getElementById('joinRoomForm').style.display = 'none';
             document.querySelector('.room-options').style.display = 'grid';
         }
+// Inizializza la pulizia all'avvio
+        document.addEventListener('DOMContentLoaded', () => {
+            cleanOldRooms();
+            console.log('App inizializzata. Usa debugStorage() nella console per verificare lo stato.');
+        });
 
-// Funzione helper per gestire lo storage con fallback
+        // Funzione di debug per controllare lo stato del storage
+        function debugStorage() {
+            console.log('=== DEBUG STORAGE ===');
+            console.log('Storage type:', storageSystem.type);
+            console.log('ROOMS_KEY:', ROOMS_KEY);
+            
+            try {
+                const data = storageSystem.getItem(ROOMS_KEY);
+                console.log('Raw data from storage:', data);
+                
+                if (data) {
+                    const rooms = JSON.parse(data);
+                    console.log('Parsed rooms:', rooms);
+                    console.log('Room codes available:', Object.keys(rooms));
+                } else {
+                    console.log('No data in storage');
+                }
+            } catch (error) {
+                console.error('Error reading storage:', error);
+            }
+            
+            console.log('Global room data:', globalRoomData);
+            console.log('Current room:', currentRoom);
+            console.log('Current user:', currentUser);
+            console.log('Is admin:', isAdmin);
+            console.log('======================');
+        }
+
+        // Esponi la funzione debug nel window per poterla chiamare dalla console
+        window.debugStorage = debugStorage;// Funzione helper per gestire lo storage con fallback
         function getStorage() {
             try {
                 // Test localStorage availability
@@ -1246,6 +1280,12 @@
 
         // Inizializza il sistema di storage
         const storageSystem = getStorage();
+
+        // Debug: mostra info storage nella console
+        console.log('Sistema di storage inizializzato:', storageSystem.type);
+        
+        // Variabile globale per condividere dati tra admin e viewer
+        let globalRoomData = null;
 
         // Mostra un avviso se non è disponibile localStorage
         function showStorageWarning() {
@@ -1311,8 +1351,16 @@
                 lastUpdate: Date.now()
             };
 
-            if (!saveRoomData()) {
-                alert('Errore nel salvare i dati della stanza. Continuo comunque...');
+            // Salva anche nella variabile globale per condivisione immediata
+            globalRoomData = roomData;
+            
+            console.log('Stanza creata:', roomCode, 'Storage type:', storageSystem.type);
+            
+            const saveResult = saveRoomData();
+            console.log('Risultato salvataggio:', saveResult);
+            
+            if (!saveResult && storageSystem.type === 'memory') {
+                alert('⚠️ I dati verranno salvati solo in memoria. Altri utenti possono unirsi solo se condividi direttamente il link o il codice.');
             }
             
             enterMainApp();
@@ -1342,22 +1390,37 @@
                 return;
             }
 
+            console.log('Tentativo di join alla stanza:', roomCode);
             showStorageWarning();
 
-            let rooms;
+            let rooms = {};
             try {
-                rooms = JSON.parse(storageSystem.getItem(ROOMS_KEY) || '{}');
+                const storedData = storageSystem.getItem(ROOMS_KEY);
+                console.log('Dati raw dal storage:', storedData);
+                
+                if (storedData) {
+                    rooms = JSON.parse(storedData);
+                    console.log('Stanze trovate nel storage:', Object.keys(rooms));
+                } else {
+                    console.log('Nessun dato trovato nel storage');
+                }
             } catch (error) {
                 console.error('Errore nel leggere i dati delle stanze:', error);
-                alert('Errore nel caricamento dei dati. Riprova o contatta l\'amministratore.');
-                return;
+            }
+
+            // Se non trovo la stanza nel storage, provo con la variabile globale
+            if (!rooms[roomCode] && globalRoomData && globalRoomData.roomCode === roomCode) {
+                console.log('Stanza trovata nella variabile globale');
+                rooms[roomCode] = globalRoomData;
             }
 
             if (!rooms[roomCode]) {
-                alert('Asta non trovata! Verifica il codice.');
+                console.log('Stanza non trovata. Stanze disponibili:', Object.keys(rooms));
+                alert(`Asta non trovata! Verifica il codice: ${roomCode}\n\nStorage type: ${storageSystem.type}\nStanze disponibili: ${Object.keys(rooms).length}`);
                 return;
             }
 
+            console.log('Join riuscito alla stanza:', roomCode);
             currentRoom = roomCode;
             isAdmin = false;
             currentUser = viewerName;
@@ -1366,6 +1429,7 @@
             // Add viewer to room
             if (!roomData.viewers.includes(viewerName)) {
                 roomData.viewers.push(viewerName);
+                globalRoomData = roomData; // Aggiorna anche la variabile globale
                 if (!saveRoomData()) {
                     console.warn('Impossibile aggiornare la lista viewer, ma continuo...');
                 }
@@ -1434,31 +1498,40 @@
         }
 
         function saveRoomData() {
-            if (!currentRoom || !isAdmin) return false;
+            if (!currentRoom) return false;
 
             try {
                 const rooms = JSON.parse(storageSystem.getItem(ROOMS_KEY) || '{}');
 
-                // Update game data from current state
-                roomData.gameData = {
-                    gameSettings: gameSettings,
-                    squadre: squadre,
-                    giocatoriDisponibili: giocatoriDisponibili,
-                    rawPlayers: rawPlayers,
-                    availablePlayers: availablePlayers,
-                    auctionedPlayers: auctionedPlayers,
-                    currentAuction: currentAuction,
-                    currentPrice: currentPrice,
-                    timerSeconds: timerSeconds
-                };
+                // Update game data from current state only if we're admin
+                if (isAdmin) {
+                    roomData.gameData = {
+                        gameSettings: gameSettings,
+                        squadre: squadre,
+                        giocatoriDisponibili: giocatoriDisponibili,
+                        rawPlayers: rawPlayers,
+                        availablePlayers: availablePlayers,
+                        auctionedPlayers: auctionedPlayers,
+                        currentAuction: currentAuction,
+                        currentPrice: currentPrice,
+                        timerSeconds: timerSeconds
+                    };
+                }
 
                 roomData.lastUpdate = Date.now();
                 rooms[currentRoom] = roomData;
                 
+                // Aggiorna sempre la variabile globale
+                globalRoomData = roomData;
+                
                 storageSystem.setItem(ROOMS_KEY, JSON.stringify(rooms));
+                console.log('Dati salvati con successo per stanza:', currentRoom);
                 return true;
             } catch (error) {
                 console.error('Errore nel salvare i dati:', error);
+                
+                // Almeno salva nella variabile globale
+                globalRoomData = roomData;
                 
                 // Prova a liberare spazio se il problema è la quota
                 if (error.name === 'QuotaExceededError') {
@@ -1532,9 +1605,18 @@
             syncInterval = setInterval(() => {
                 if (!isAdmin && currentRoom) {
                     try {
-                        const rooms = JSON.parse(storageSystem.getItem(ROOMS_KEY) || '{}');
-                        if (rooms[currentRoom] && rooms[currentRoom].lastUpdate > roomData.lastUpdate) {
-                            roomData = rooms[currentRoom];
+                        let rooms = {};
+                        const storedData = storageSystem.getItem(ROOMS_KEY);
+                        if (storedData) {
+                            rooms = JSON.parse(storedData);
+                        }
+                        
+                        // Prova prima dal storage, poi dalla variabile globale
+                        let updatedRoom = rooms[currentRoom] || globalRoomData;
+                        
+                        if (updatedRoom && updatedRoom.lastUpdate > roomData.lastUpdate) {
+                            console.log('Sincronizzazione: dati aggiornati ricevuti');
+                            roomData = updatedRoom;
                             loadRoomData();
                             updateRoomUI();
                         }
@@ -1667,10 +1749,36 @@
             }
         }
 
-        // Inizializza la pulizia all'avvio
-        document.addEventListener('DOMContentLoaded', () => {
-            cleanOldRooms();
-        });
+        // Funzione di debug per controllare lo stato del storage
+        function debugStorage() {
+            console.log('=== DEBUG STORAGE ===');
+            console.log('Storage type:', storageSystem.type);
+            console.log('ROOMS_KEY:', ROOMS_KEY);
+            
+            try {
+                const data = storageSystem.getItem(ROOMS_KEY);
+                console.log('Raw data from storage:', data);
+                
+                if (data) {
+                    const rooms = JSON.parse(data);
+                    console.log('Parsed rooms:', rooms);
+                    console.log('Room codes available:', Object.keys(rooms));
+                } else {
+                    console.log('No data in storage');
+                }
+            } catch (error) {
+                console.error('Error reading storage:', error);
+            }
+            
+            console.log('Global room data:', globalRoomData);
+            console.log('Current room:', currentRoom);
+            console.log('Current user:', currentUser);
+            console.log('Is admin:', isAdmin);
+            console.log('======================');
+        }
+
+        // Esponi la funzione debug nel window per poterla chiamare dalla console
+        window.debugStorage = debugStorage;
 
         // Gestisce l'evento beforeunload per avvertire dell'uscita
         window.addEventListener('beforeunload', (e) => {
@@ -1680,6 +1788,7 @@
                 return e.returnValue;
             }
         });
+        
         function updateAuctionUI() {
             if (!currentAuction) return;
 
