@@ -2296,6 +2296,83 @@
             };
         }
 
+        
+        function riposizionaGiocatoriInNuovoModulo(squadra, nuovoModulo) {
+            const nuovaFormazione = {};
+            const slotsNuovoModulo = getFormationSlots(nuovoModulo);
+            const giocatoriAssegnatiId = new Set();
+
+            // Ordina tutti i giocatori per Fm Attesa decrescente
+            const tuttiGiocatoriRosa = [...squadra.rosa].sort((a, b) => b['Fm Attesa'] - a['Fm Attesa']);
+
+            // Prima fase: assegna i giocatori migliori a ogni slot
+            slotsNuovoModulo.forEach(slot => {
+                let migliorGiocatore = null;
+                let migliorFm = -1;
+
+                // Cerca il miglior giocatore disponibile per questo slot
+                for (const giocatore of tuttiGiocatoriRosa) {
+                    // Verifica che il giocatore non sia già assegnato e sia compatibile
+                    if (!giocatoriAssegnatiId.has(giocatore.Id) &&
+                        giocatoreCompatibileConPosizione(giocatore, slot.position)) {
+
+                        if (giocatore['Fm Attesa'] > migliorFm) {
+                            migliorGiocatore = giocatore;
+                            migliorFm = giocatore['Fm Attesa'];
+                        }
+                    }
+                }
+
+                // Assegna il miglior giocatore trovato
+                if (migliorGiocatore) {
+                    nuovaFormazione[slot.slotId] = migliorGiocatore;
+                    giocatoriAssegnatiId.add(migliorGiocatore.Id);
+                }
+            });
+
+            // Seconda fase: ottimizzazione con scambi per migliorare la formazione complessiva
+            let miglioramentoTrovato = true;
+            while (miglioramentoTrovato) {
+                miglioramentoTrovato = false;
+
+                // Per ogni slot della formazione
+                for (const slot of slotsNuovoModulo) {
+                    const giocatoreCorrente = nuovaFormazione[slot.slotId];
+                    if (!giocatoreCorrente) continue;
+
+                    // Cerca un giocatore migliore non assegnato
+                    for (const candidato of tuttiGiocatoriRosa) {
+                        if (!giocatoriAssegnatiId.has(candidato.Id) &&
+                            giocatoreCompatibileConPosizione(candidato, slot.position) &&
+                            candidato['Fm Attesa'] > giocatoreCorrente['Fm Attesa']) {
+
+                            // Effettua lo scambio
+                            giocatoriAssegnatiId.delete(giocatoreCorrente.Id);
+                            giocatoriAssegnatiId.add(candidato.Id);
+                            nuovaFormazione[slot.slotId] = candidato;
+
+                            miglioramentoTrovato = true;
+                            break;
+                        }
+                    }
+
+                    if (miglioramentoTrovato) break;
+                }
+            }
+
+            // Calcola i giocatori rimasti in panchina
+            const giocatoriInPanchina = tuttiGiocatoriRosa.filter(player =>
+                !giocatoriAssegnatiId.has(player.Id)
+            );
+
+            return {
+                formazione: nuovaFormazione,
+                giocatoriRimossi: giocatoriInPanchina
+            };
+        }
+
+
+
         function autoInserisciGiocatore(nuovoGiocatore, nomeSquadra) {
             const squadra = squadre[nomeSquadra];
 
