@@ -780,6 +780,9 @@
             }
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 
 <body>
@@ -1200,122 +1203,194 @@
             document.getElementById('joinRoomForm').style.display = 'none';
             document.querySelector('.room-options').style.display = 'grid';
         }
-// Inizializza la pulizia all'avvio
-        document.addEventListener('DOMContentLoaded', () => {
-            cleanOldRooms();
-            console.log('App inizializzata. Usa debugStorage() nella console per verificare lo stato.');
-        });
+        // ============================================
+        // FIREBASE CONFIGURATION E SETUP
+        // ============================================
 
-        // Funzione di debug per controllare lo stato del storage
-        function debugStorage() {
-            console.log('=== DEBUG STORAGE ===');
-            console.log('Storage type:', storageSystem.type);
-            console.log('ROOMS_KEY:', ROOMS_KEY);
-            
+        const firebaseConfig = {
+            apiKey: "AIzaSyCceM0-KyxV8on6Xgu3ssTLimlct2Arocc",
+            authDomain: "gestione-fanta-e5879.firebaseapp.com",
+            databaseURL: "https://gestione-fanta-e5879-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gestione-fanta-e5879",
+            storageBucket: "gestione-fanta-e5879.firebasestorage.app",
+            messagingSenderId: "299989514167",
+            appId: "1:299989514167:web:1457c6584891f5827f1a32",
+            measurementId: "G-N1Z2DZELE2"
+        };
+
+
+        let firebaseApp = null;
+        let database = null;
+        let isOnline = true;
+        let reconnectTimer = null;
+        let lastSyncTime = 0;
+
+        // Inizializza Firebase
+        function initializeFirebase() {
             try {
-                const data = storageSystem.getItem(ROOMS_KEY);
-                console.log('Raw data from storage:', data);
-                
-                if (data) {
-                    const rooms = JSON.parse(data);
-                    console.log('Parsed rooms:', rooms);
-                    console.log('Room codes available:', Object.keys(rooms));
+                if (!firebase.apps.length) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
                 } else {
-                    console.log('No data in storage');
+                    firebaseApp = firebase.app();
                 }
+                database = firebase.database();
+
+                // Configura la persistenza offline
+                database.goOffline();
+                database.goOnline();
+
+                // Monitor della connessione
+                setupConnectionMonitoring();
+
+                console.log('Firebase inizializzato con successo');
+                return true;
             } catch (error) {
-                console.error('Error reading storage:', error);
+                console.error('Errore nell\'inizializzazione di Firebase:', error);
+                // Fallback al sistema localStorage
+                return false;
             }
-            
-            console.log('Global room data:', globalRoomData);
-            console.log('Current room:', currentRoom);
-            console.log('Current user:', currentUser);
-            console.log('Is admin:', isAdmin);
-            console.log('======================');
         }
 
-        // Esponi la funzione debug nel window per poterla chiamare dalla console
-        window.debugStorage = debugStorage;// Funzione helper per gestire lo storage con fallback
-        function getStorage() {
-            try {
-                // Test localStorage availability
-                const test = '__test__';
-                localStorage.setItem(test, 'test');
-                localStorage.removeItem(test);
-                return {
-                    type: 'localStorage',
-                    storage: localStorage,
-                    getItem: (key) => localStorage.getItem(key),
-                    setItem: (key, value) => localStorage.setItem(key, value),
-                    removeItem: (key) => localStorage.removeItem(key)
-                };
-            } catch (e) {
-                console.warn('localStorage non disponibile, uso sessionStorage');
-                try {
-                    // Test sessionStorage availability
-                    const test = '__test__';
-                    sessionStorage.setItem(test, 'test');
-                    sessionStorage.removeItem(test);
-                    return {
-                        type: 'sessionStorage',
-                        storage: sessionStorage,
-                        getItem: (key) => sessionStorage.getItem(key),
-                        setItem: (key, value) => sessionStorage.setItem(key, value),
-                        removeItem: (key) => sessionStorage.removeItem(key)
-                    };
-                } catch (e2) {
-                    console.warn('sessionStorage non disponibile, uso memoria temporanea');
-                    // Fallback in memoria
-                    const memoryStorage = {};
-                    return {
-                        type: 'memory',
-                        storage: memoryStorage,
-                        getItem: (key) => memoryStorage[key] || null,
-                        setItem: (key, value) => { memoryStorage[key] = value; },
-                        removeItem: (key) => { delete memoryStorage[key]; }
-                    };
+        // ============================================
+        // CONNECTION MONITORING E OFFLINE HANDLING
+        // ============================================
+
+        function setupConnectionMonitoring() {
+            // Monitor connessione Firebase
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snapshot) => {
+                const connected = snapshot.val();
+                updateConnectionStatus(connected);
+
+                if (connected && !isOnline) {
+                    console.log('Riconnessione rilevata, sincronizzazione...');
+                    handleReconnection();
+                }
+
+                isOnline = connected;
+            });
+
+            // Monitor connessione di rete
+            window.addEventListener('online', () => {
+                console.log('Rete disponibile');
+                if (database) {
+                    database.goOnline();
+                }
+                handleReconnection();
+            });
+
+            window.addEventListener('offline', () => {
+                console.log('Rete non disponibile');
+                updateConnectionStatus(false);
+            });
+
+            // Heartbeat per verificare la connessione
+            setInterval(checkConnection, 5000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionStatus') || createConnectionIndicator();
+
+            if (connected) {
+                indicator.textContent = '🟢 Online';
+                indicator.style.background = '#48bb78';
+                indicator.title = 'Connesso e sincronizzato';
+            } else {
+                indicator.textContent = '🔴 Offline';
+                indicator.style.background = '#f56565';
+                indicator.title = 'Disconnesso - I dati verranno sincronizzati alla riconnessione';
+            }
+        }
+
+        function createConnectionIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'connectionStatus';
+            indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #48bb78;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        z-index: 10000;
+        cursor: pointer;
+    `;
+            indicator.textContent = '🟢 Online';
+            document.body.appendChild(indicator);
+            return indicator;
+        }
+
+        function checkConnection() {
+            if (!database || !currentRoom) return;
+
+            // Prova a leggere un timestamp dal server
+            database.ref('.info/serverTimeOffset').once('value')
+                .then(() => {
+                    if (!isOnline) {
+                        isOnline = true;
+                        updateConnectionStatus(true);
+                        handleReconnection();
+                    }
+                })
+                .catch(() => {
+                    if (isOnline) {
+                        isOnline = false;
+                        updateConnectionStatus(false);
+                    }
+                });
+        }
+
+        function handleReconnection() {
+            if (!currentRoom) return;
+
+            clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(() => {
+                console.log('Tentativo di riconnessione alla stanza...');
+                rejoinRoom();
+            }, 1000);
+        }
+
+        // ============================================
+        // URL SYNC E ROOM SHARING
+        // ============================================
+
+        function updateURLWithRoom(roomCode) {
+            const url = new URL(window.location);
+            url.searchParams.set('room', roomCode);
+            window.history.replaceState({}, '', url);
+        }
+
+        function getRoomFromURL() {
+            const url = new URL(window.location);
+            return url.searchParams.get('room');
+        }
+
+        function createShareableURL(roomCode) {
+            const url = new URL(window.location);
+            url.searchParams.set('room', roomCode);
+            return url.toString();
+        }
+
+        // Controlla se c'è una room nell'URL all'avvio
+        function checkURLForRoom() {
+            const roomFromURL = getRoomFromURL();
+            if (roomFromURL && !currentRoom) {
+                // Mostra dialog per unirsi automaticamente
+                if (confirm(`Vuoi unirti automaticamente alla stanza ${roomFromURL}?`)) {
+                    document.getElementById('roomCodeInput').value = roomFromURL;
+                    document.getElementById('viewerNameInput').focus();
+                    showJoinRoom();
                 }
             }
         }
 
-        // Inizializza il sistema di storage
-        const storageSystem = getStorage();
+        // ============================================
+        // FIREBASE ROOM MANAGEMENT
+        // ============================================
 
-        // Debug: mostra info storage nella console
-        console.log('Sistema di storage inizializzato:', storageSystem.type);
-        
-        // Variabile globale per condividere dati tra admin e viewer
-        let globalRoomData = null;
-
-        // Mostra un avviso se non è disponibile localStorage
-        function showStorageWarning() {
-            if (storageSystem.type !== 'localStorage') {
-                const warningMessage = storageSystem.type === 'sessionStorage' 
-                    ? '⚠️ I dati verranno salvati solo per questa sessione. Per salvare permanentemente, abilita i cookie nel browser.'
-                    : '⚠️ Impossibile salvare i dati. I dati andranno persi chiudendo la pagina. Abilita i cookie per il salvataggio permanente.';
-                
-                // Crea un banner di avviso
-                const warningDiv = document.createElement('div');
-                warningDiv.id = 'storageWarning';
-                warningDiv.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    background: #ff6b35;
-                    color: white;
-                    padding: 10px;
-                    text-align: center;
-                    z-index: 9999;
-                    font-size: 14px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                `;
-                warningDiv.innerHTML = warningMessage + ' <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer;">✕</button>';
-                document.body.insertBefore(warningDiv, document.body.firstChild);
-            }
-        }
-
-        function createRoom() {
+        function createRoomFirebase() {
             const roomName = document.getElementById('roomNameInput').value.trim();
             const adminName = document.getElementById('adminNameInput').value.trim();
 
@@ -1324,14 +1399,18 @@
                 return;
             }
 
-            showStorageWarning();
+            if (!database) {
+                console.warn('Firebase non disponibile, uso sistema locale');
+                createRoom(); // Fallback al sistema originale
+                return;
+            }
 
             const roomCode = generateRoomCode();
             currentRoom = roomCode;
             isAdmin = true;
             currentUser = adminName;
 
-            // Initialize room data
+            // Crea i dati della stanza
             roomData = {
                 roomCode: roomCode,
                 roomName: roomName,
@@ -1348,40 +1427,39 @@
                     currentPrice: 1,
                     timerSeconds: 10
                 },
-                lastUpdate: Date.now()
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                isActive: true
             };
 
-            // Salva anche nella variabile globale per condivisione immediata
-            globalRoomData = roomData;
-            
-            console.log('Stanza creata:', roomCode, 'Storage type:', storageSystem.type);
-            
-            const saveResult = saveRoomData();
-            console.log('Risultato salvataggio:', saveResult);
-            
-            if (!saveResult && storageSystem.type === 'memory') {
-                alert('⚠️ I dati verranno salvati solo in memoria. Altri utenti possono unirsi solo se condividi direttamente il link o il codice.');
-            }
-            
-            enterMainApp();
+            // Salva su Firebase
+            database.ref(`rooms/${roomCode}`).set(roomData)
+                .then(() => {
+                    console.log('Stanza creata su Firebase:', roomCode);
+                    updateURLWithRoom(roomCode);
+                    setupRoomListener(roomCode);
+                    enterMainApp();
 
-            // Initialize with demo data
-            loadPlayersFromExcel().then(() => {
-                initializeTeams();
-                setupEventListeners();
-                populateTeamSelect();
-                populateFiltroRuoli();
-                updateStats();
-                renderPlayers();
-                renderTeams();
-                saveRoomData();
-            }).catch(error => {
-                console.error('Errore nel caricamento giocatori:', error);
-                alert('Errore nel caricamento dei giocatori. Riprova.');
-            });
+                    // Inizializza con dati demo
+                    loadPlayersFromExcel().then(() => {
+                        initializeTeams();
+                        setupEventListeners();
+                        populateTeamSelect();
+                        populateFiltroRuoli();
+                        updateStats();
+                        renderPlayers();
+                        renderTeams();
+                        saveRoomDataFirebase();
+                    });
+                })
+                .catch(error => {
+                    console.error('Errore nella creazione della stanza Firebase:', error);
+                    alert('Errore nella creazione della stanza. Riprova o usa la modalità offline.');
+                    // Fallback al sistema locale
+                    createRoom();
+                });
         }
 
-        function joinRoom() {
+        function joinRoomFirebase() {
             const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
             const viewerName = document.getElementById('viewerNameInput').value.trim();
 
@@ -1390,59 +1468,449 @@
                 return;
             }
 
-            console.log('Tentativo di join alla stanza:', roomCode);
-            showStorageWarning();
-
-            let rooms = {};
-            try {
-                const storedData = storageSystem.getItem(ROOMS_KEY);
-                console.log('Dati raw dal storage:', storedData);
-                
-                if (storedData) {
-                    rooms = JSON.parse(storedData);
-                    console.log('Stanze trovate nel storage:', Object.keys(rooms));
-                } else {
-                    console.log('Nessun dato trovato nel storage');
-                }
-            } catch (error) {
-                console.error('Errore nel leggere i dati delle stanze:', error);
-            }
-
-            // Se non trovo la stanza nel storage, provo con la variabile globale
-            if (!rooms[roomCode] && globalRoomData && globalRoomData.roomCode === roomCode) {
-                console.log('Stanza trovata nella variabile globale');
-                rooms[roomCode] = globalRoomData;
-            }
-
-            if (!rooms[roomCode]) {
-                console.log('Stanza non trovata. Stanze disponibili:', Object.keys(rooms));
-                alert(`Asta non trovata! Verifica il codice: ${roomCode}\n\nStorage type: ${storageSystem.type}\nStanze disponibili: ${Object.keys(rooms).length}`);
+            if (!database) {
+                console.warn('Firebase non disponibile, uso sistema locale');
+                joinRoom(); // Fallback al sistema originale
                 return;
             }
 
-            console.log('Join riuscito alla stanza:', roomCode);
-            currentRoom = roomCode;
-            isAdmin = false;
-            currentUser = viewerName;
-            roomData = rooms[roomCode];
+            // Verifica se la stanza esiste
+            database.ref(`rooms/${roomCode}`).once('value')
+                .then(snapshot => {
+                    if (!snapshot.exists()) {
+                        alert('Asta non trovata! Verifica il codice.');
+                        return;
+                    }
 
-            // Add viewer to room
-            if (!roomData.viewers.includes(viewerName)) {
-                roomData.viewers.push(viewerName);
-                globalRoomData = roomData; // Aggiorna anche la variabile globale
-                if (!saveRoomData()) {
-                    console.warn('Impossibile aggiornare la lista viewer, ma continuo...');
+                    const roomInfo = snapshot.val();
+                    if (!roomInfo.isActive) {
+                        alert('Questa asta non è più attiva.');
+                        return;
+                    }
+
+                    currentRoom = roomCode;
+                    isAdmin = roomInfo.admin === viewerName;
+                    currentUser = viewerName;
+                    roomData = roomInfo;
+
+                    // Aggiungi viewer alla lista
+                    const viewersRef = database.ref(`rooms/${roomCode}/viewers`);
+                    viewersRef.transaction(viewers => {
+                        viewers = viewers || [];
+                        if (!viewers.includes(viewerName)) {
+                            viewers.push(viewerName);
+                        }
+                        return viewers;
+                    });
+
+                    // Aggiorna timestamp ultimo accesso
+                    database.ref(`rooms/${roomCode}/lastUpdate`).set(firebase.database.ServerValue.TIMESTAMP);
+
+                    updateURLWithRoom(roomCode);
+                    setupRoomListener(roomCode);
+                    loadRoomDataFirebase();
+                    enterMainApp();
+
+                    console.log('Unito alla stanza Firebase:', roomCode, 'Come admin:', isAdmin);
+                })
+                .catch(error => {
+                    console.error('Errore nell\'unirsi alla stanza:', error);
+                    alert('Errore nella connessione alla stanza. Riprova.');
+                });
+        }
+
+        function rejoinRoom() {
+
+            rejoinWithSavedCredentials();
+
+            if (!currentRoom || !database) return;
+
+            console.log('Tentativo di riconnessione alla stanza:', currentRoom);
+
+            database.ref(`rooms/${currentRoom}`).once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const updatedRoom = snapshot.val();
+                        if (updatedRoom.isActive) {
+                            roomData = updatedRoom;
+
+                            if (updatedRoom.admin === currentUser) {
+                                isAdmin = true;
+                                console.log('Privilegi admin ripristinati per:', currentUser);
+                            }
+
+                            loadRoomDataFirebase();
+
+                            // Ri-aggiunge il viewer se necessario
+                            if (!isAdmin) {
+                                const viewersRef = database.ref(`rooms/${currentRoom}/viewers`);
+                                viewersRef.transaction(viewers => {
+                                    viewers = viewers || [];
+                                    if (!viewers.includes(currentUser)) {
+                                        viewers.push(currentUser);
+                                    }
+                                    return viewers;
+                                });
+                            }
+
+                            console.log('Riconnessione riuscita');
+                            updateRoomUI();
+                        } else {
+                            alert('La stanza non è più attiva. Verrai disconnesso.');
+                            leaveRoomFirebase();
+                        }
+                    } else {
+                        alert('La stanza non esiste più. Verrai disconnesso.');
+                        leaveRoomFirebase();
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore nella riconnessione:', error);
+                });
+        }
+
+        // ============================================
+        // REAL-TIME SYNC
+        // ============================================
+
+        function setupRoomListener(roomCode) {
+            if (!database) return;
+
+            const roomRef = database.ref(`rooms/${roomCode}`);
+
+            // Listener per cambiamenti in tempo reale
+            roomRef.on('value', snapshot => {
+                if (!snapshot.exists()) {
+                    console.warn('La stanza è stata eliminata');
+                    if (currentRoom === roomCode) {
+                        alert('La stanza è stata chiusa dall\'amministratore.');
+                        leaveRoomFirebase();
+                    }
+                    return;
                 }
+
+                const updatedRoom = snapshot.val();
+
+                if (updatedRoom.lastUpdate > lastSyncTime) {
+                    console.log('Dati aggiornati ricevuti da Firebase');
+                    roomData = updatedRoom;
+                    loadRoomDataFirebase();
+                    updateRoomUI();
+                    lastSyncTime = updatedRoom.lastUpdate;
+                }
+            }, error => {
+                console.error('Errore nel listener della stanza:', error);
+                updateConnectionStatus(false);
+            });
+
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', snapshot => {
+                updateConnectionStatus(snapshot.val());
+            });
+        }
+
+        function saveRoomDataFirebase() {
+            if (!currentRoom || !database || !isAdmin) return;
+
+            // Solo l'admin può salvare modifiche
+            const updates = {
+                [`rooms/${currentRoom}/gameData`]: {
+                    gameSettings: gameSettings,
+                    squadre: squadre,
+                    giocatoriDisponibili: giocatoriDisponibili,
+                    rawPlayers: rawPlayers,
+                    availablePlayers: availablePlayers,
+                    auctionedPlayers: auctionedPlayers,
+                    currentAuction: currentAuction ?? null,
+                    currentPrice: currentPrice,
+                    timerSeconds: timerSeconds
+                },
+                [`rooms/${currentRoom}/lastUpdate`]: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref().update(updates)
+                .then(() => {
+                    console.log('Dati salvati su Firebase');
+                })
+                .catch(error => {
+                    console.error('Errore nel salvataggio su Firebase:', error);
+                    // Fallback al sistema locale
+                    saveState();
+                });
+        }
+
+        function loadRoomDataFirebase() {
+            if (!roomData?.gameData) return;
+            try {
+                const data = roomData.gameData;
+                gameSettings = data.gameSettings || gameSettings;
+                squadre = data.squadre || {};
+                giocatoriDisponibili = data.giocatoriDisponibili || [];
+                rawPlayers = data.rawPlayers || {};
+                availablePlayers = data.availablePlayers || [];
+                auctionedPlayers = data.auctionedPlayers || [];
+                currentAuction = data.currentAuction;
+                currentPrice = data.currentPrice || 1;
+                timerSeconds = data.timerSeconds || 10;
+
+                gameSettings.nomiSquadre.slice(0, gameSettings.participants).forEach(nome => {
+                    if (!squadre[nome]) squadre[nome] = {};
+                    if (!Array.isArray(squadre[nome].rosa)) squadre[nome].rosa = [];
+                    if (typeof squadre[nome].budget !== 'number') squadre[nome].budget = gameSettings.budget;
+                    if (!squadre[nome].modulo) squadre[nome].modulo = document.getElementById('moduleSelect')?.value || '3-4-3';
+                    if (!squadre[nome].formazione) squadre[nome].formazione = {};
+                });
+
+                // Aggiorna UI
+                populateModulo();
+                setupEventListeners();
+                populateTeamSelect();
+                populateFiltroRuoli();
+                updateStats();
+                renderPlayers();
+                renderTeams();
+                renderField();
+
+                if (currentAuction) {
+                    updateAuctionUI();
+                }
+
+                updatePlayerCounter();
+
+                console.log('Dati caricati da Firebase');
+            } catch (error) {
+                console.error('Errore nel caricamento dati Firebase:', error);
+            }
+        }
+
+        function rejoinWithSavedCredentials() {
+            const tempRoom = localStorage.getItem('tempReconnectRoom');
+            const tempUser = localStorage.getItem('tempReconnectUser');
+            const tempIsAdmin = localStorage.getItem('tempReconnectIsAdmin') === 'true';
+
+            if (tempRoom && tempUser) {
+                currentRoom = tempRoom;
+                currentUser = tempUser;
+                isAdmin = tempIsAdmin;
+
+                // Pulisci le credenziali temporanee
+                localStorage.removeItem('tempReconnectRoom');
+                localStorage.removeItem('tempReconnectUser');
+                localStorage.removeItem('tempReconnectIsAdmin');
+
+                console.log('Riconnessione con credenziali salvate:', { room: tempRoom, user: tempUser, isAdmin: tempIsAdmin });
+            }
+        }
+        function leaveRoomFirebase() {
+            if (currentRoom && database) {
+                // Rimuovi viewer dalla lista
+                if (currentUser) {
+                    const viewersRef = database.ref(`rooms/${currentRoom}/viewers`);
+                    viewersRef.transaction(viewers => {
+                        if (viewers) {
+                            return viewers.filter(v => v !== currentUser);
+                        }
+                        return viewers;
+                    });
+                }
+
+                // Se sei admin, marca la stanza come inattiva
+                if (isAdmin) {
+                    database.ref(`rooms/${currentRoom}/isActive`).set(false);
+                }
+
+                // Rimuovi listeners
+                database.ref(`rooms/${currentRoom}`).off();
             }
 
-            loadRoomData();
-            enterMainApp();
-            startSyncInterval();
+            // Pulisci URL
+            const url = new URL(window.location);
+            url.searchParams.delete('room');
+            window.history.replaceState({}, '', url);
+
+            // Reset variabili
+            currentRoom = null;
+            isAdmin = false;
+            currentUser = null;
+            roomData = null;
+            lastSyncTime = 0;
+
+            // Torna alla schermata iniziale
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('roomSetup').style.display = 'block';
+            backToOptions();
         }
+
+        // ============================================
+        // ENHANCED SHARING
+        // ============================================
+
+        function shareRoomEnhanced() {
+            const shareURL = createShareableURL(currentRoom);
+            const shareText = `🏆 Unisciti alla mia asta "${roomData.roomName}"!\n\n🔗 Link diretto: ${shareURL}\n\n📋 Codice: ${currentRoom}\n\nApri il link o inserisci il codice su ${window.location.origin}`;
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ text: shareText, url: shareURL })) {
+                navigator.share({
+                    title: 'Asta Fantacalcio',
+                    text: `Unisciti alla mia asta "${roomData.roomName}"!`,
+                    url: shareURL
+                }).catch(error => {
+                    console.log('Errore nella condivisione:', error);
+                    fallbackShareEnhanced(shareText, shareURL);
+                });
+            } else {
+                fallbackShareEnhanced(shareText, shareURL);
+            }
+        }
+
+        function fallbackShareEnhanced(shareText, shareURL) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareURL).then(() => {
+                    alert('Link copiato negli appunti!\n\nChiunque apra questo link si unirà automaticamente alla tua asta.');
+                }).catch(error => {
+                    console.error('Errore nella copia:', error);
+                    showShareDialogEnhanced(shareText, shareURL);
+                });
+            } else {
+                showShareDialogEnhanced(shareText, shareURL);
+            }
+        }
+
+        function showShareDialogEnhanced(shareText, shareURL) {
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 10000;
+        max-width: 500px;
+        width: 90%;
+    `;
+
+            dialog.innerHTML = `
+        <h3>🏆 Condividi la tua asta</h3>
+        <p><strong>Link diretto:</strong></p>
+        <input readonly style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px;" value="${shareURL}" onclick="this.select()">
+        <p><strong>Codice stanza:</strong></p>
+        <input readonly style="width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px;" value="${currentRoom}" onclick="this.select()">
+        <p style="font-size: 12px; color: #666; margin: 10px 0;">
+            💡 Chiunque apra il link si unirà automaticamente. Il codice può essere inserito manualmente.
+        </p>
+        <div style="text-align: right;">
+            <button onclick="this.parentElement.parentElement.remove()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Chiudi</button>
+        </div>
+    `;
+
+            document.body.appendChild(dialog);
+        }
+
+        // ============================================
+        // UPDATED FUNCTION REPLACEMENTS
+        // ============================================
+
+        // Sostituisci le funzioni originali con le versioni Firebase
+        function createRoom() {
+            if (initializeFirebase()) {
+                createRoomFirebase();
+            } else {
+                // Fallback al sistema originale se Firebase non è disponibile
+                createRoomOriginal();
+            }
+        }
+
+        function joinRoom() {
+            if (initializeFirebase()) {
+                joinRoomFirebase();
+            } else {
+                // Fallback al sistema originale
+                joinRoomOriginal();
+            }
+        }
+
+        function shareRoom() {
+            if (database && currentRoom) {
+                shareRoomEnhanced();
+            } else {
+                shareRoomOriginal();
+            }
+        }
+
+        function leaveRoom() {
+            if (confirm('Sei sicuro di voler uscire dall\'asta?')) {
+                if (database && currentRoom) {
+                    leaveRoomFirebase();
+                } else {
+                    leaveRoomOriginal();
+                }
+            }
+        }
+
+        function saveState() {
+            if (isAdmin) {
+                if (database && currentRoom) {
+                    saveRoomDataFirebase();
+                } else {
+                    saveRoomData();
+                }
+            }
+        }
+
+        // ============================================
+        // AUTO-REJOIN ON PAGE LOAD
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inizializza Firebase
+            if (initializeFirebase()) {
+                console.log('Sistema Firebase attivo');
+
+                // Controlla se c'è una room nell'URL
+                checkURLForRoom();
+
+                // Auto-rejoin se c'è una sessione salvata
+                const savedRoom = localStorage.getItem('currentAstaRoom');
+                const savedUser = localStorage.getItem('currentAstaUser');
+                const savedIsAdmin = localStorage.getItem('currentAstaIsAdmin') === 'true';
+
+                if (savedRoom && savedUser && !getRoomFromURL()) {
+                    if (confirm(`Vuoi riconnetterti alla tua ultima asta (${savedRoom})?`)) {
+                        localStorage.setItem('tempReconnectRoom', savedRoom);
+                        localStorage.setItem('tempReconnectUser', savedUser);
+                        localStorage.setItem('tempReconnectIsAdmin', savedIsAdmin.toString());
+
+                        document.getElementById('roomCodeInput').value = savedRoom;
+                        document.getElementById('viewerNameInput').value = savedUser;
+
+                        if (savedIsAdmin) {
+                            document.getElementById('adminNameInput').value = savedUser;
+                        }
+
+                        rejoinRoom();
+                    }
+                }
+            } else {
+                console.log('Sistema localStorage attivo (fallback)');
+            }
+        });
+        const createRoomOriginal = window.createRoom;
+        const joinRoomOriginal = window.joinRoom;
+        const shareRoomOriginal = window.shareRoom;
+        const leaveRoomOriginal = window.leaveRoom;
 
         function enterMainApp() {
             document.getElementById('roomSetup').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
+
+            if (currentRoom && currentUser) {
+                localStorage.setItem('currentAstaRoom', currentRoom);
+                localStorage.setItem('currentAstaUser', currentUser);
+                localStorage.setItem('currentAstaIsAdmin', isAdmin.toString());
+            }
 
             updateRoomUI();
             applyUserPermissions();
@@ -1453,7 +1921,7 @@
             document.getElementById('userRole').textContent = isAdmin ? 'Admin' : 'Viewer';
             document.getElementById('userRole').className = `role-badge ${isAdmin ? 'admin' : ''}`;
             document.getElementById('viewerCount').textContent = `👥 ${roomData.viewers.length}`;
-            
+
             // Aggiungi indicatore del tipo di storage
             const storageIndicator = document.getElementById('storageIndicator');
             if (storageIndicator) {
@@ -1465,7 +1933,6 @@
         function applyUserPermissions() {
             const viewerNotice = document.getElementById('viewerNotice');
             const adminControls = document.getElementById('adminControls');
-
             if (isAdmin) {
                 viewerNotice.style.display = 'none';
                 adminControls.style.display = 'block';
@@ -1477,7 +1944,7 @@
                 const interactiveElements = document.querySelectorAll('button, input');
                 interactiveElements.forEach(el => {
                     if (!el.closest('#roomSetup') && !el.closest('.room-btn') && !el.closest('#searchPlayer')
-                        && !el.closest('#reset-filtri') && !el.closest('.tab-btn')) {
+                        && !el.closest('#reset-filtri') && !el.closest('.tab-btn') && !el.closest('.bid-btn')) {
                         el.classList.add('disabled');
                         if (el.tagName === 'BUTTON') {
                             el.onclick = (e) => {
@@ -1503,7 +1970,6 @@
             try {
                 const rooms = JSON.parse(storageSystem.getItem(ROOMS_KEY) || '{}');
 
-                // Update game data from current state only if we're admin
                 if (isAdmin) {
                     roomData.gameData = {
                         gameSettings: gameSettings,
@@ -1520,19 +1986,19 @@
 
                 roomData.lastUpdate = Date.now();
                 rooms[currentRoom] = roomData;
-                
+
                 // Aggiorna sempre la variabile globale
                 globalRoomData = roomData;
-                
+
                 storageSystem.setItem(ROOMS_KEY, JSON.stringify(rooms));
                 console.log('Dati salvati con successo per stanza:', currentRoom);
                 return true;
             } catch (error) {
                 console.error('Errore nel salvare i dati:', error);
-                
+
                 // Almeno salva nella variabile globale
                 globalRoomData = roomData;
-                
+
                 // Prova a liberare spazio se il problema è la quota
                 if (error.name === 'QuotaExceededError') {
                     try {
@@ -1540,15 +2006,15 @@
                         const rooms = JSON.parse(storageSystem.getItem(ROOMS_KEY) || '{}');
                         const now = Date.now();
                         const oneWeek = 7 * 24 * 60 * 60 * 1000;
-                        
+
                         Object.keys(rooms).forEach(code => {
                             if (now - rooms[code].lastUpdate > oneWeek) {
                                 delete rooms[code];
                             }
                         });
-                        
+
                         storageSystem.setItem(ROOMS_KEY, JSON.stringify(rooms));
-                        
+
                         // Riprova a salvare
                         rooms[currentRoom] = roomData;
                         storageSystem.setItem(ROOMS_KEY, JSON.stringify(rooms));
@@ -1557,7 +2023,7 @@
                         console.error('Impossibile liberare spazio:', secondError);
                     }
                 }
-                
+
                 return false;
             }
         }
@@ -1610,10 +2076,10 @@
                         if (storedData) {
                             rooms = JSON.parse(storedData);
                         }
-                        
+
                         // Prova prima dal storage, poi dalla variabile globale
                         let updatedRoom = rooms[currentRoom] || globalRoomData;
-                        
+
                         if (updatedRoom && updatedRoom.lastUpdate > roomData.lastUpdate) {
                             console.log('Sincronizzazione: dati aggiornati ricevuti');
                             roomData = updatedRoom;
@@ -1673,7 +2139,7 @@
                 max-width: 400px;
                 width: 90%;
             `;
-            
+
             dialog.innerHTML = `
                 <h3>Condividi la tua asta</h3>
                 <textarea readonly style="width: 100%; height: 100px; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">${shareText}</textarea>
@@ -1681,9 +2147,9 @@
                     <button onclick="this.parentElement.parentElement.remove()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Chiudi</button>
                 </div>
             `;
-            
+
             document.body.appendChild(dialog);
-            
+
             // Seleziona il testo automaticamente
             const textarea = dialog.querySelector('textarea');
             textarea.select();
@@ -1732,14 +2198,14 @@
                 const now = Date.now();
                 const oneWeek = 7 * 24 * 60 * 60 * 1000;
                 let cleaned = false;
-                
+
                 Object.keys(rooms).forEach(code => {
                     if (now - rooms[code].lastUpdate > oneWeek) {
                         delete rooms[code];
                         cleaned = true;
                     }
                 });
-                
+
                 if (cleaned) {
                     storageSystem.setItem(ROOMS_KEY, JSON.stringify(rooms));
                     console.log('Pulizia dati vecchi completata');
@@ -1754,11 +2220,11 @@
             console.log('=== DEBUG STORAGE ===');
             console.log('Storage type:', storageSystem.type);
             console.log('ROOMS_KEY:', ROOMS_KEY);
-            
+
             try {
                 const data = storageSystem.getItem(ROOMS_KEY);
                 console.log('Raw data from storage:', data);
-                
+
                 if (data) {
                     const rooms = JSON.parse(data);
                     console.log('Parsed rooms:', rooms);
@@ -1769,7 +2235,7 @@
             } catch (error) {
                 console.error('Error reading storage:', error);
             }
-            
+
             console.log('Global room data:', globalRoomData);
             console.log('Current room:', currentRoom);
             console.log('Current user:', currentUser);
@@ -1788,12 +2254,18 @@
                 return e.returnValue;
             }
         });
-        
+
         function updateAuctionUI() {
             if (!currentAuction) return;
 
             const playerInfo = document.getElementById('playerInfoAsta');
-            document.getElementById('currentPrice').innerText = currentPrice;
+            if (!isAdmin) {
+                document.getElementsByClassName('price-display')[0].style.display = 'none';
+                document.getElementById('timerDisplay').style.display = 'none';
+            } else {
+                document.getElementById('currentPrice').innerText = currentPrice;
+
+            }
 
             playerInfo.innerHTML = `
                 <div style="width: 30%;"> 
@@ -1814,22 +2286,8 @@
             const playerCard = document.getElementById('auctionPlayerCard');
             auctionInfo.style.display = 'block';
             playerCard.classList.add('auction-active');
+            if (isAdmin) document.getElementById('biddingControls').style.display = 'block';
 
-            if (isAdmin) {
-                document.getElementById('biddingControls').style.display = 'block';
-            }
-        }
-
-        // Modified original functions to work with room system
-        function saveState() {
-            if (isAdmin) {
-                saveRoomData();
-            }
-        }
-
-        function loadState() {
-            // This is now handled by room system
-            return false;
         }
 
         function updatePlayerCounter() {
@@ -1884,7 +2342,6 @@
         }
 
         function startTimer() {
-            if (!isAdmin) return;
 
             const timerDisplay = document.getElementById('timerDisplay');
             timerDisplay.innerText = timerSeconds;
@@ -1905,19 +2362,17 @@
                     endAuction();
                 }
 
-                saveState();
             }, 1000);
         }
 
         function raiseBid(value) {
-            if (!currentAuction || !isAdmin) return;
-
+            if (!currentAuction) return;
             currentPrice += value;
             document.getElementById('currentPrice').innerText = currentPrice;
             clearInterval(auctionTimer);
             timerSeconds = 10;
             startTimer();
-            saveState();
+             saveState();
         }
 
         function endAuction() {
@@ -1937,7 +2392,6 @@
             // Open buy modal with suggested price
             openBuyModal(currentAuction.id, currentPrice);
             currentAuction = null;
-            saveState();
         }
 
         function skipPlayer() {
@@ -1958,7 +2412,6 @@
             // Put player back in available list
             availablePlayers.push(currentAuction);
             currentAuction = null;
-            saveState();
 
             // Automatically start next auction
             setTimeout(() => startAuction(), 500);
@@ -2296,7 +2749,7 @@
             };
         }
 
-        
+
         function riposizionaGiocatoriInNuovoModulo(squadra, nuovoModulo) {
             const nuovaFormazione = {};
             const slotsNuovoModulo = getFormationSlots(nuovoModulo);
@@ -2535,7 +2988,6 @@
 
             renderTeamDetails();
             renderField();
-            saveState();
         }
 
         function getFormationSlots(modulo) {
@@ -2670,7 +3122,6 @@
 
             renderPlayers();
             updateStats();
-            saveState();
         }
 
         function populateTeamSelect() {
@@ -2937,7 +3388,7 @@
                 ],
             }
             let mantraFormations = {
-                
+
                 "3-4-2-1": [
                     ["Por"],
                     ["Dc", "Dc", "Dc/B"],
@@ -3046,7 +3497,6 @@
                 squadra.formazione[slotId] = selectedPlayer;
                 renderTeamDetails();
                 renderField();
-                saveState();
             } else if (playerName !== null && playerName.trim() !== '') {
                 alert('Selezione non valida. Inserisci un numero valido.');
             }
@@ -3063,7 +3513,6 @@
             }
             renderTeamDetails();
             renderField();
-            saveState();
         }
 
         function removePlayer(playerId) {
@@ -3251,7 +3700,9 @@
             playerInfo.innerHTML = `
                 <div style="width: 30%;"> 
                     <img style="width: 100%; border-radius: 8px;" 
-                         src="https://content.fantacalcio.it/web/campioncini/card/${currentPlayer.nome.replace(' ', '-').replace('.', '').toUpperCase()}.png" onerror="this.style.display='none'"/> 
+                         src="https://content.fantacalcio.it/web/campioncini/card/${currentPlayer.nome.replace(' ', '-').replace('.', '').replace('ì', 'i').replace('è', 'e').replace('à', 'a').toUpperCase()}.png"
+                         alt="https://d33tv69wp99vv7.cloudfront.net/cartoon/empty.webp"
+                         onerror="this.style.display='none'"/> 
                 </div>
                 <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 70%; margin-left: 10px;">
                     <h3>${currentPlayer.nome}</h3>
@@ -3366,12 +3817,7 @@
             document.getElementById('startAuctionBtn').addEventListener('click', startAuction);
             document.getElementById('skipPlayerBtn').addEventListener('click', skipPlayer);
 
-            document.querySelectorAll('.bid-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const bidValue = parseInt(e.target.dataset.value);
-                    raiseBid(bidValue);
-                });
-            });
+            setupBidEventDelegation();
 
             document.querySelectorAll('.close').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -3392,21 +3838,42 @@
             }
         }
 
+        function setupBidEventDelegation() {
+            const auctionContainer = document.getElementById('biddingControls');
+
+            // Rimuovi listener precedente se esiste
+            if (auctionContainer.bidDelegationHandler) {
+                auctionContainer.removeEventListener('click', auctionContainer.bidDelegationHandler);
+            }
+
+            // Crea nuovo handler
+            auctionContainer.bidDelegationHandler = function (e) {
+                if (e.target.classList.contains('bid-btn')) {
+                    e.stopPropagation();
+                    const bidValue = parseInt(e.target.dataset.value);
+                    raiseBid(bidValue);
+                }
+            };
+
+            // Aggiungi il listener al container
+            auctionContainer.addEventListener('click', auctionContainer.bidDelegationHandler);
+        }
+
         function codificaPrezzo(prezzo) {
-            return prezzo;
+            //return prezzo;
 
             const mappatura = {
                 '.': '.',
-                '0': 'Ale',
-                '1': 'Peak',
-                '2': 'Mere',
-                '3': 'Ghirlo',
-                '4': 'Roma',
-                '5': 'Inzo',
-                '6': 'Mono',
-                '7': 'Lanzo',
-                '8': 'Pashy',
-                '9': 'Tia'
+                '0': 'A',
+                '1': 'P',
+                '2': 'M',
+                '3': 'G',
+                '4': 'R',
+                '5': 'I',
+                '6': 'M',
+                '7': 'L',
+                '8': 'S',
+                '9': 'T'
             };
 
             const numeroStr = String(prezzo);
@@ -3418,13 +3885,9 @@
             return numero_decodificato;
         }
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
-        });
+
 
     </script>
-
 </body>
 
 </html>
