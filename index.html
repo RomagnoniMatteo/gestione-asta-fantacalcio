@@ -2872,7 +2872,7 @@
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
                 rawPlayers = jsonData.map((row, index) => {
                     return {
-                        id: parseFloat(row.Id),,
+                        id: parseFloat(row.Id),
                         nome: (row.Nome).toString().trim(),
                         squadra: (row.Squadra).toString().trim(),
                         ruolo: (row.RM).toString().trim(),
@@ -3891,4 +3891,5 @@
 </body>
 
 </html>
+
 
