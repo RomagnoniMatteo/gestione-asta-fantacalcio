@@ -1509,6 +1509,8 @@
                     updateURLWithRoom(roomCode);
                     setupRoomListener(roomCode);
                     loadRoomDataFirebase();
+                    valoreMedioRuoli = calcolaValoreMedioRuoli();
+                    recalculatePrices();
                     enterMainApp();
 
                     console.log('Unito alla stanza Firebase:', roomCode, 'Come admin:', isAdmin);
@@ -3891,6 +3893,7 @@
 </body>
 
 </html>
+
 
 
 
