@@ -3081,8 +3081,8 @@
                 const fmAmbitaValue = getFmAmbita();
                 const budgetAsta = gameSettings.budget;
                 const valoreRuolo = valoreMedioRuoli[ruolo] || 6.0;
-                const budgetIncrementale = budgetAsta * 0.7;
-                const prezzoMedioScheletro = (budgetAsta * 0.25) / 11;
+                const budgetIncrementale = budgetAsta * 0.8;
+                const prezzoMedioScheletro = (budgetAsta * 0.2) / 11;
                 let valore_modulo = 0;
                 Object.keys(squadre).forEach(teamId => {
                     valore_modulo += calcolaValoreModulo(moduliFantacalcio[gameSettings.modalita][squadre[teamId].modulo]);
@@ -3891,5 +3891,6 @@
 </body>
 
 </html>
+
 
 
